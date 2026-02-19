@@ -357,6 +357,48 @@
     .res-edit .edit-status.error { background: var(--red-glow); color: var(--red); border: 1px solid rgba(239,68,68,0.1); }
     .res-edit .edit-status.pending { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
 
+    /* ── Embed dropdown ── */
+    .embed-wrap { position: relative; }
+    .embed-dropdown {
+      display: none; position: absolute; right: 0; top: calc(100% + 6px);
+      z-index: 20; width: 380px; max-width: 92vw;
+      background: var(--bg-panel); border: 1px solid var(--border-light);
+      border-radius: var(--r-lg); box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+      padding: 14px; animation: pageIn 0.15s ease;
+    }
+    .embed-dropdown.open { display: block; }
+    .embed-dropdown .ed-title {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--text-dim); margin-bottom: 10px;
+    }
+    .embed-dropdown .ed-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-bottom: 8px;
+    }
+    .embed-dropdown .ed-row:last-child { margin-bottom: 0; }
+    .embed-dropdown .ed-label {
+      font-family: var(--mono); font-size: 11px; color: var(--text);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .embed-dropdown .ed-label small { color: var(--text-dim); font-weight: 300; }
+    .embed-dropdown .ed-copy {
+      padding: 5px 10px; border-radius: 5px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      cursor: pointer; white-space: nowrap; transition: all 0.15s var(--ease);
+    }
+    .embed-dropdown .ed-copy:hover { border-color: var(--blue); color: var(--blue-light); }
+    .embed-dropdown .ed-copy.copied { border-color: var(--green); color: var(--green); }
+    .embed-dropdown .ed-preview {
+      margin-top: 10px; padding: 8px 10px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
+      font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+      line-height: 1.6; white-space: pre-wrap; word-break: break-all;
+      max-height: 72px; overflow-y: auto; display: none;
+    }
+    .embed-dropdown .ed-preview.show { display: block; }
+
     /* ── Embed code block ── */
     .code-block {
       background: var(--bg-input); border: 1px solid var(--border);
@@ -385,6 +427,80 @@
       border: 1px dashed var(--border); border-radius: var(--r-lg);
     }
     .empty-state p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+
+    /* ── Revenue chart ── */
+    .chart-wrap {
+      position: relative; width: 100%; height: 220px;
+      margin-top: 8px; margin-bottom: 4px;
+    }
+    .chart-wrap canvas { display: block; width: 100%; height: 100%; }
+    .chart-empty {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    }
+    .chart-legend {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 6px;
+    }
+    .chart-legend .dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    /* ── Date filter bar ── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filter-chip {
+      padding: 5px 12px; border-radius: 6px;
+      font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+      background: var(--bg-input); border: 1px solid var(--border);
+      color: var(--text-dim); cursor: pointer;
+      transition: all 0.15s var(--ease); user-select: none;
+    }
+    .filter-chip:hover { border-color: var(--border-light); color: var(--text); }
+    .filter-chip.active { background: var(--blue-glow); border-color: rgba(50,114,232,0.2); color: var(--blue-light); }
+    .filter-spacer { flex: 1; }
+
+    /* ── Transaction table ── */
+    .tx-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .tx-table th {
+      font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); text-align: left;
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+    }
+    .tx-table td {
+      font-family: var(--mono); font-size: 12px; color: var(--text);
+      padding: 10px 10px; border-bottom: 1px solid rgba(28,34,51,0.5);
+      vertical-align: middle;
+    }
+    .tx-table tr:hover td { background: rgba(255,255,255,0.01); }
+    .tx-table .addr { color: var(--blue-light); text-decoration: none; }
+    .tx-table .addr:hover { text-decoration: underline; }
+    .tx-table .amt { color: var(--text-bright); font-weight: 500; }
+    .tx-table .res-tag {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(50,114,232,0.1);
+    }
+    .tx-table .time { color: var(--text-dim); font-size: 11px; }
+    .tx-empty {
+      text-align: center; padding: 28px 16px;
+      font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    }
+    .tx-pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    }
+    .tx-pagination button {
+      padding: 4px 10px; border-radius: 5px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      cursor: pointer; transition: all 0.15s var(--ease);
+    }
+    .tx-pagination button:hover:not(:disabled) { border-color: var(--border-light); color: var(--text); }
+    .tx-pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
 
     /* ── Responsive ── */
     @media (max-width: 860px) {
@@ -491,14 +607,14 @@
             <p class="sub">Enter the YouTube video you want to gate behind a payment wall.</p>
 
             <div class="field">
-              <label>YouTube URL or Video ID <span class="req">*</span>
-                <span class="hint">Paste any YouTube link — we'll extract the video ID automatically</span>
+              <label>Video Source <span class="req">*</span>
+                <span class="hint">YouTube link, IPFS URL (ipfs://...), gateway URL, or direct video URL (.mp4, .webm)</span>
               </label>
-              <input type="text" id="ytInput" placeholder="https://youtube.com/watch?v=..." oninput="parseYouTube()">
+              <input type="text" id="ytInput" placeholder="YouTube URL, ipfs://Qm..., or https://example.com/video.mp4" oninput="parseYouTube()">
             </div>
 
             <div class="thumb-preview" id="thumbPreview">
-              <div class="placeholder">Video thumbnail will appear here</div>
+              <div class="placeholder">Video preview will appear here</div>
             </div>
 
             <div class="field">
@@ -584,8 +700,8 @@
                 <div class="stat-value" id="reviewAccess" style="font-size:14px;">—</div>
               </div>
               <div class="stat-card">
-                <div class="stat-label">YouTube ID</div>
-                <div class="stat-value" id="reviewYtId" style="font-size:14px;">—</div>
+                <div class="stat-label">Content Source</div>
+                <div class="stat-value" id="reviewYtId" style="font-size:14px;word-break:break-all;">—</div>
               </div>
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Estimated Gas Cost</div>
@@ -657,6 +773,46 @@
           <div class="stat-card">
             <div class="stat-label">Resources</div>
             <div class="stat-value" id="statResources">—</div>
+          </div>
+        </div>
+
+        <!-- Revenue Chart -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <h2>Revenue Over Time</h2>
+          </div>
+          <p class="sub">Payment activity from on-chain event logs.</p>
+          <div class="filter-bar" id="chartFilterBar">
+            <span class="filter-chip active" data-range="7" onclick="setChartRange(7,this)">7d</span>
+            <span class="filter-chip" data-range="30" onclick="setChartRange(30,this)">30d</span>
+            <span class="filter-chip" data-range="90" onclick="setChartRange(90,this)">90d</span>
+            <span class="filter-chip" data-range="0" onclick="setChartRange(0,this)">All</span>
+            <div class="filter-spacer"></div>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);" id="chartTxCount"></span>
+          </div>
+          <div class="chart-wrap" id="chartWrap">
+            <div class="chart-empty" id="chartEmpty">Loading event logs...</div>
+            <canvas id="revenueChart" style="display:none;"></canvas>
+          </div>
+          <div class="chart-legend" id="chartLegend" style="display:none;">
+            <span><span class="dot" style="background:var(--blue-light);"></span>Revenue (APTM)</span>
+            <span><span class="dot" style="background:var(--green);"></span>Payments</span>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon amber"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+            <h2>Recent Transactions</h2>
+          </div>
+          <p class="sub">Individual payments from event logs. <button class="btn btn-sm btn-secondary" onclick="exportCSV()" id="csvBtn" style="margin-left:6px;padding:4px 10px;font-size:10px;" disabled>
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button></p>
+          <div id="txTableWrap">
+            <div class="tx-empty">Loading...</div>
           </div>
         </div>
 
@@ -772,6 +928,8 @@ let userAddress = null;
 let vaultAddress = null;
 let lifetimeAccess = true;
 let parsedYtId = '';
+let parsedContentRef = '';
+let parsedContentType = 'youtube'; // 'youtube' | 'ipfs' | 'direct'
 let currentAddStep = 0;
 
 // ═══════════════════════════════════════════════════════════════
@@ -919,29 +1077,80 @@ function enterDashboard() {
 //  ADD CONTENT WIZARD
 // ═══════════════════════════════════════════════════════════════
 
+function detectContentSource(input) {
+  if (!input) return { type: 'unknown', value: '' };
+  const trimmed = input.trim();
+  if (trimmed.startsWith('ipfs://')) return { type: 'ipfs', value: trimmed };
+  if (trimmed.includes('/ipfs/') || trimmed.includes('/ipns/')) return { type: 'ipfs', value: trimmed };
+  const videoExts = /\.(mp4|webm|ogg|mov|m3u8|mkv)(\?.*)?$/i;
+  if ((trimmed.startsWith('http://') || trimmed.startsWith('https://')) && videoExts.test(trimmed))
+    return { type: 'direct', value: trimmed };
+  const ytPatterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const p of ytPatterns) { const m = trimmed.match(p); if (m) return { type: 'youtube', value: m[1] }; }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return { type: 'direct', value: trimmed };
+  if (/^(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})$/.test(trimmed)) return { type: 'ipfs', value: 'ipfs://' + trimmed };
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return { type: 'youtube', value: trimmed };
+  return { type: 'unknown', value: trimmed };
+}
+
 function parseYouTube() {
   const input = document.getElementById('ytInput').value.trim();
-  let id = '';
+  const preview = document.getElementById('thumbPreview');
+  const resInput = document.getElementById('resId');
 
-  // Try various YouTube URL formats
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-    /^([a-zA-Z0-9_-]{11})$/,
-  ];
-  for (const p of patterns) {
-    const m = input.match(p);
-    if (m) { id = m[1]; break; }
+  if (!input) {
+    parsedYtId = ''; parsedContentRef = ''; parsedContentType = 'unknown';
+    preview.innerHTML = '<div class="placeholder">Video preview will appear here</div>';
+    return;
   }
 
-  parsedYtId = id;
-  const preview = document.getElementById('thumbPreview');
-  if (id) {
-    preview.innerHTML = `<img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="Video thumbnail">`;
-    // Auto-generate resource ID if empty
-    const resInput = document.getElementById('resId');
-    if (!resInput.value) resInput.value = 'video-' + id.slice(0, 6).toLowerCase();
+  const source = detectContentSource(input);
+  parsedContentType = source.type;
+
+  if (source.type === 'youtube') {
+    parsedYtId = source.value;
+    parsedContentRef = source.value;
+    preview.innerHTML = `<img src="https://img.youtube.com/vi/${source.value}/hqdefault.jpg" alt="Video thumbnail">`;
+    if (!resInput.value) resInput.value = 'video-' + source.value.slice(0, 6).toLowerCase();
+
+  } else if (source.type === 'ipfs') {
+    parsedYtId = ''; parsedContentRef = source.value;
+    const displayCid = source.value.replace('ipfs://', '').slice(0, 24) + '...';
+    preview.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
+        <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--blue-light);fill:none;stroke-width:1.5;flex-shrink:0;">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">IPFS Video</span>
+          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${displayCid}</span>
+        </div>
+      </div>`;
+    const cidPart = source.value.replace('ipfs://', '').replace(/^https?:\/\/.*\/ipfs\//, '').slice(0, 8).toLowerCase();
+    if (!resInput.value) resInput.value = 'video-' + cidPart;
+
+  } else if (source.type === 'direct') {
+    parsedYtId = ''; parsedContentRef = source.value;
+    let urlHost = source.value;
+    try { urlHost = new URL(source.value).hostname; } catch {}
+    preview.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
+        <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--green);fill:none;stroke-width:1.5;flex-shrink:0;">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Direct Video URL</span>
+          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${urlHost}</span>
+        </div>
+      </div>`;
+    const slug = urlHost.replace(/\./g, '-').slice(0, 8);
+    if (!resInput.value) resInput.value = 'video-' + slug;
+
   } else {
-    preview.innerHTML = '<div class="placeholder">Enter a YouTube URL above</div>';
+    parsedYtId = ''; parsedContentRef = '';
+    preview.innerHTML = '<div class="placeholder">Could not detect video source. Try a YouTube URL, IPFS URL, or direct .mp4 link.</div>';
   }
 }
 
@@ -952,7 +1161,7 @@ function toggleLifetime() {
 
 function addStep(step) {
   // Validate
-  if (step > 0 && !parsedYtId) { alert('Please enter a valid YouTube URL.'); return; }
+  if (step > 0 && !parsedContentRef) { alert('Please enter a valid YouTube URL, IPFS URL, or video URL.'); return; }
   if (step > 0 && !document.getElementById('resId').value.trim()) { alert('Resource ID is required.'); return; }
   if (step > 1) {
     const price = parseFloat(document.getElementById('priceInput').value);
@@ -976,11 +1185,25 @@ function addStep(step) {
 
   // Populate review step
   if (step === 2) {
-    document.getElementById('reviewThumb').innerHTML = `<img src="https://img.youtube.com/vi/${parsedYtId}/hqdefault.jpg" alt="">`;
+    if (parsedContentType === 'youtube') {
+      document.getElementById('reviewThumb').innerHTML = `<img src="https://img.youtube.com/vi/${parsedContentRef}/hqdefault.jpg" alt="">`;
+    } else {
+      const icon = parsedContentType === 'ipfs' ? 'var(--blue-light)' : 'var(--green)';
+      const label = parsedContentType === 'ipfs' ? 'IPFS Video' : 'Direct Video';
+      document.getElementById('reviewThumb').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;background:#0a0b0d;border-radius:10px;padding:16px;">
+          <div style="text-align:center;">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:${icon};fill:none;stroke-width:1.5;margin-bottom:8px;">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            <div style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${label}</div>
+          </div>
+        </div>`;
+    }
     document.getElementById('reviewResId').textContent = document.getElementById('resId').value;
     document.getElementById('reviewPrice').textContent = document.getElementById('priceInput').value + ' APTM';
     document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
-    document.getElementById('reviewYtId').textContent = parsedYtId;
+    document.getElementById('reviewYtId').textContent = parsedContentRef.length > 40 ? parsedContentRef.slice(0, 37) + '...' : parsedContentRef;
     document.getElementById('embedOutput').style.display = 'none';
     document.getElementById('reviewGas').textContent = 'Estimating...';
 
@@ -1007,7 +1230,7 @@ async function estimatePublishGas() {
     const resourceId = document.getElementById('resId').value.trim();
     const price = toWei(document.getElementById('priceInput').value);
     const contentType = 'video';
-    const contentRef = parsedYtId;
+    const contentRef = parsedContentRef;
 
     // Build the same calldata as publishResource
     const sel = selector('addResource(string,uint256,bool,string,string)');
@@ -1068,7 +1291,7 @@ async function publishResource() {
   const resourceId = document.getElementById('resId').value.trim();
   const price = toWei(document.getElementById('priceInput').value);
   const contentType = 'video';
-  const contentRef = parsedYtId;
+  const contentRef = parsedContentRef;
 
   try {
     // Encode addResource(string, uint256, bool, string, string)
@@ -1230,10 +1453,29 @@ async function loadMyContent() {
                 <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Edit
               </button>
-              <button class="btn btn-sm btn-secondary" onclick="copyEmbed('${safeId}')">
-                <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Embed
-              </button>
+              <div class="embed-wrap">
+                <button class="btn btn-sm btn-secondary" onclick="toggleEmbedDropdown('${safeId}', event)">
+                  <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  Embed
+                  <svg viewBox="0 0 24 24" style="width:10px;height:10px;margin-left:-2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="embed-dropdown" id="embedDrop-${item.resourceId}">
+                  <div class="ed-title">Embed & Integration</div>
+                  <div class="ed-row">
+                    <span class="ed-label">Hosted Link <small>— viewer page URL</small></span>
+                    <button class="ed-copy" onclick="copyEmbedFormat('${safeId}','link',this,event)">Copy</button>
+                  </div>
+                  <div class="ed-row">
+                    <span class="ed-label">iframe <small>— drop into any HTML</small></span>
+                    <button class="ed-copy" onclick="copyEmbedFormat('${safeId}','iframe',this,event)">Copy</button>
+                  </div>
+                  <div class="ed-row">
+                    <span class="ed-label">Script Tag <small>— auto-rendering widget</small></span>
+                    <button class="ed-copy" onclick="copyEmbedFormat('${safeId}','script',this,event)">Copy</button>
+                  </div>
+                  <div class="ed-preview" id="embedPreview-${item.resourceId}"></div>
+                </div>
+              </div>
               ${item.active
                 ? `<button class="btn btn-sm btn-red" onclick="togglePause('${safeId}', true)">Pause</button>`
                 : `<button class="btn btn-sm btn-green" onclick="togglePause('${safeId}', false)">Unpause</button>`
@@ -1341,6 +1583,7 @@ async function loadRevenue() {
     const breakdown = document.getElementById('revenueBreakdown');
     if (resCount === 0) {
       breakdown.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">No resources yet.</div>';
+      loadPaymentEvents();
       return;
     }
 
@@ -1372,9 +1615,458 @@ async function loadRevenue() {
     html += '</div>';
     breakdown.innerHTML = html;
 
+    // Load event logs for chart + transaction table
+    loadPaymentEvents();
+
   } catch (err) {
     document.getElementById('revenueBreakdown').innerHTML = `<div class="status-bar show error">${err.message}</div>`;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  REVENUE DASHBOARD — Event Logs, Chart, Transactions
+// ═══════════════════════════════════════════════════════════════
+
+let allPaymentEvents = [];
+let chartRange = 7; // days, 0 = all
+let txPage = 0;
+const TX_PER_PAGE = 10;
+
+async function loadPaymentEvents() {
+  const emptyEl = document.getElementById('chartEmpty');
+  const tableWrap = document.getElementById('txTableWrap');
+  try {
+    // The CreatorVault may emit events with different signatures than the A402Verifier.
+    // Strategy: fetch ALL logs from the vault, then try to match known event patterns.
+    // We try multiple candidate topic0 hashes for AccessPaid variants.
+
+    const candidates = [
+      // CreatorVault: AccessPaid(address indexed payer, string resourceId, uint256 amount, bool lifetime, uint256 timestamp)
+      { sig: 'AccessPaid(address,string,uint256,bool,uint256)', indexed: 1, layout: 'vault' },
+      // A402Verifier v2: AccessPaid(address indexed payer, address indexed creator, string resourceId, uint256 amount, bool lifetime, uint256 timestamp)
+      { sig: 'AccessPaid(address,address,string,uint256,bool,uint256)', indexed: 2, layout: 'verifier' },
+      // Possible: no bool
+      { sig: 'AccessPaid(address,string,uint256,uint256)', indexed: 1, layout: 'simple' },
+      // With nonce
+      { sig: 'AccessPaid(address,string,uint256,bool,bytes32,uint256)', indexed: 1, layout: 'nonce' },
+    ];
+
+    const topicMap = {};
+    for (const c of candidates) {
+      topicMap['0x' + keccak256(c.sig)] = c;
+    }
+
+    // Fetch all logs from the vault
+    const allLogs = await rpc('eth_getLogs', [{
+      fromBlock: '0x0',
+      toBlock: 'latest',
+      address: vaultAddress,
+    }]);
+
+    if (!allLogs || allLogs.length === 0) {
+      emptyEl.textContent = 'No events emitted by this vault yet.';
+      tableWrap.innerHTML = '<div class="tx-empty">No transactions found.</div>';
+      return;
+    }
+
+    // Group by topic0 to discover what events exist
+    const byTopic = {};
+    for (const log of allLogs) {
+      const t0 = log.topics[0];
+      if (!byTopic[t0]) byTopic[t0] = [];
+      byTopic[t0].push(log);
+    }
+
+    // Try to find payment events — first check known signatures, then use heuristic
+    let paymentLogs = [];
+    let matchedCandidate = null;
+
+    for (const [topic0, candidate] of Object.entries(topicMap)) {
+      if (byTopic[topic0]) {
+        paymentLogs = byTopic[topic0];
+        matchedCandidate = candidate;
+        break;
+      }
+    }
+
+    // If no known signature matched, use heuristic: find the event topic with the most occurrences
+    // that has indexed addresses (topics.length >= 2) — likely the payment event
+    if (paymentLogs.length === 0) {
+      let bestTopic = null, bestCount = 0;
+      for (const [t0, logs] of Object.entries(byTopic)) {
+        if (logs[0].topics.length >= 2 && logs.length > bestCount) {
+          bestCount = logs.length;
+          bestTopic = t0;
+        }
+      }
+      if (bestTopic) {
+        paymentLogs = byTopic[bestTopic];
+        matchedCandidate = { sig: 'unknown', indexed: paymentLogs[0].topics.length - 1, layout: 'heuristic' };
+      }
+    }
+
+    if (paymentLogs.length === 0) {
+      emptyEl.textContent = 'No payment events found.';
+      tableWrap.innerHTML = '<div class="tx-empty">No transactions found.</div>';
+      return;
+    }
+
+    // Parse events based on layout
+    allPaymentEvents = paymentLogs.map(log => {
+      try {
+        const payer = '0x' + log.topics[1].slice(-40);
+        const data = log.data.slice(2);
+
+        // For all layouts, we need to find: amount, timestamp, resourceId, lifetime
+        // The data section contains ABI-encoded values. Dynamic string comes first (offset),
+        // followed by static values.
+        let amount, timestamp, lifetime, resourceId;
+
+        if (matchedCandidate.layout === 'verifier') {
+          // data: (string_offset, uint256 amount, bool lifetime, uint256 timestamp)
+          amount = BigInt('0x' + data.slice(64, 128)).toString();
+          lifetime = BigInt('0x' + data.slice(128, 192)) === 1n;
+          timestamp = Number(BigInt('0x' + data.slice(192, 256)));
+          const strOff = Number(BigInt('0x' + data.slice(0, 64))) * 2;
+          const strLen = Number(BigInt('0x' + data.slice(strOff, strOff + 64)));
+          resourceId = hexToString(data.slice(strOff + 64, strOff + 64 + strLen * 2));
+        } else if (matchedCandidate.layout === 'vault') {
+          // data: (string_offset, uint256 amount, bool lifetime, uint256 timestamp)
+          amount = BigInt('0x' + data.slice(64, 128)).toString();
+          lifetime = BigInt('0x' + data.slice(128, 192)) === 1n;
+          timestamp = Number(BigInt('0x' + data.slice(192, 256)));
+          const strOff = Number(BigInt('0x' + data.slice(0, 64))) * 2;
+          const strLen = Number(BigInt('0x' + data.slice(strOff, strOff + 64)));
+          resourceId = hexToString(data.slice(strOff + 64, strOff + 64 + strLen * 2));
+        } else if (matchedCandidate.layout === 'simple') {
+          // data: (string_offset, uint256 amount, uint256 timestamp)
+          amount = BigInt('0x' + data.slice(64, 128)).toString();
+          lifetime = false;
+          timestamp = Number(BigInt('0x' + data.slice(128, 192)));
+          const strOff = Number(BigInt('0x' + data.slice(0, 64))) * 2;
+          const strLen = Number(BigInt('0x' + data.slice(strOff, strOff + 64)));
+          resourceId = hexToString(data.slice(strOff + 64, strOff + 64 + strLen * 2));
+        } else {
+          // Heuristic: try to extract data assuming common patterns
+          // Look for amount (large wei value) and timestamp (epoch seconds ~1.7B range)
+          // Word 0 is usually string offset, word 1 is amount, last word is timestamp
+          const wordCount = data.length / 64;
+          amount = BigInt('0x' + data.slice(64, 128)).toString();
+          lifetime = false;
+
+          // Find timestamp: last few words, value in reasonable epoch range
+          timestamp = 0;
+          for (let w = wordCount - 1; w >= 2; w--) {
+            const val = Number(BigInt('0x' + data.slice(w * 64, (w + 1) * 64)));
+            if (val > 1700000000 && val < 2000000000) { timestamp = val; break; }
+          }
+          // Check if there's a bool before timestamp
+          if (wordCount >= 4) {
+            const boolWord = BigInt('0x' + data.slice(128, 192));
+            if (boolWord === 0n || boolWord === 1n) lifetime = boolWord === 1n;
+          }
+
+          // Decode string
+          try {
+            const strOff = Number(BigInt('0x' + data.slice(0, 64))) * 2;
+            const strLen = Number(BigInt('0x' + data.slice(strOff, strOff + 64)));
+            resourceId = hexToString(data.slice(strOff + 64, strOff + 64 + strLen * 2));
+          } catch { resourceId = '?'; }
+
+          // If timestamp is still 0, use block timestamp lookup (fallback)
+          if (timestamp === 0) timestamp = Math.floor(Date.now() / 1000);
+        }
+
+        return {
+          payer, resourceId, amount, lifetime, timestamp,
+          txHash: log.transactionHash,
+          blockNumber: Number(BigInt(log.blockNumber)),
+        };
+      } catch (e) {
+        return null;
+      }
+    }).filter(Boolean).sort((a, b) => b.timestamp - a.timestamp);
+
+    document.getElementById('csvBtn').disabled = allPaymentEvents.length === 0;
+
+    // Cross-reference lifetime status from on-chain resource config
+    // The event bool may not reflect actual lifetime setting, so we check getResource()
+    await enrichLifetimeStatus();
+
+    renderChart();
+    renderTxTable();
+
+  } catch (err) {
+    emptyEl.textContent = 'Failed to load events: ' + err.message;
+    tableWrap.innerHTML = `<div class="tx-empty" style="color:var(--red);">Error: ${err.message}</div>`;
+  }
+}
+
+// ── Enrich lifetime status from on-chain resource config ──
+async function enrichLifetimeStatus() {
+  // Collect unique resourceIds from events
+  const resourceIds = [...new Set(allPaymentEvents.map(e => e.resourceId))];
+  const lifetimeMap = {};
+
+  for (const resId of resourceIds) {
+    try {
+      const s = selector('getResource(string)');
+      const data = '0x' + s + padUint(32) + encodeString(resId);
+      const result = await ethCall(vaultAddress, data);
+      const d = result.slice(2);
+      // Word 1 = lifetime (bool)
+      lifetimeMap[resId] = BigInt('0x' + d.slice(64, 128)) === 1n;
+    } catch {
+      lifetimeMap[resId] = false;
+    }
+  }
+
+  // Update events with accurate lifetime status
+  for (const e of allPaymentEvents) {
+    if (lifetimeMap[e.resourceId] !== undefined) {
+      e.lifetime = lifetimeMap[e.resourceId];
+    }
+  }
+}
+
+// ── Date filter ──
+function setChartRange(days, el) {
+  chartRange = days;
+  document.querySelectorAll('#chartFilterBar .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  txPage = 0;
+  renderChart();
+  renderTxTable();
+}
+
+function getFilteredEvents() {
+  if (chartRange === 0) return allPaymentEvents;
+  const cutoff = Math.floor(Date.now() / 1000) - (chartRange * 86400);
+  return allPaymentEvents.filter(e => e.timestamp >= cutoff);
+}
+
+// ── Canvas chart ──
+function renderChart() {
+  const events = getFilteredEvents();
+  const canvas = document.getElementById('revenueChart');
+  const emptyEl = document.getElementById('chartEmpty');
+  const legendEl = document.getElementById('chartLegend');
+  const countEl = document.getElementById('chartTxCount');
+
+  countEl.textContent = events.length + ' payment' + (events.length !== 1 ? 's' : '');
+
+  if (events.length === 0) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'flex';
+    emptyEl.textContent = 'No payments in this period.';
+    legendEl.style.display = 'none';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  emptyEl.style.display = 'none';
+  legendEl.style.display = 'flex';
+
+  // Bucket by day
+  const buckets = {};
+  for (const e of events) {
+    const d = new Date(e.timestamp * 1000);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (!buckets[key]) buckets[key] = { revenue: 0n, payments: 0 };
+    buckets[key].revenue += BigInt(e.amount);
+    buckets[key].payments += 1;
+  }
+
+  // Fill gaps
+  const sortedKeys = Object.keys(buckets).sort();
+  const startDate = new Date(sortedKeys[0] + 'T00:00:00');
+  const endDate = new Date(sortedKeys[sortedKeys.length - 1] + 'T00:00:00');
+  const labels = [];
+  const revData = [];
+  const payData = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    labels.push(String(d.getMonth() + 1) + '/' + String(d.getDate()));
+    const b = buckets[key];
+    if (b) {
+      // Convert revenue to float APTM
+      const weiStr = b.revenue.toString().padStart(19, '0');
+      const whole = weiStr.slice(0, -18) || '0';
+      const frac = weiStr.slice(-18).slice(0, 6);
+      revData.push(parseFloat(whole + '.' + frac));
+      payData.push(b.payments);
+    } else {
+      revData.push(0);
+      payData.push(0);
+    }
+  }
+
+  // Draw
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { top: 20, right: 14, bottom: 28, left: 52 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+
+  const maxRev = Math.max(...revData, 0.001);
+  const maxPay = Math.max(...payData, 1);
+  const n = labels.length;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (cH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  // Y-axis labels (revenue)
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#5c6478';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (cH / 4) * i;
+    const val = maxRev * (1 - i / 4);
+    ctx.fillText(val.toFixed(val >= 1 ? 2 : 4), pad.left - 6, y + 3);
+  }
+
+  // X-axis labels
+  ctx.textAlign = 'center';
+  const labelStep = Math.max(1, Math.floor(n / 8));
+  for (let i = 0; i < n; i += labelStep) {
+    const x = pad.left + (i / Math.max(n - 1, 1)) * cW;
+    ctx.fillText(labels[i], x, H - 6);
+  }
+
+  if (n === 1) {
+    // Single bar
+    const barW = Math.min(cW * 0.3, 40);
+    const x = pad.left + cW / 2;
+    const rH = (revData[0] / maxRev) * cH;
+    ctx.fillStyle = 'rgba(90,148,245,0.5)';
+    ctx.fillRect(x - barW / 2, pad.top + cH - rH, barW, rH);
+    // Payment count as dot
+    const pH = (payData[0] / maxPay) * cH;
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(x, pad.top + cH - pH, 4, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  // Revenue area fill
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top + cH);
+  for (let i = 0; i < n; i++) {
+    const x = pad.left + (i / (n - 1)) * cW;
+    const y = pad.top + cH - (revData[i] / maxRev) * cH;
+    if (i === 0) ctx.lineTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pad.left + cW, pad.top + cH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+  grad.addColorStop(0, 'rgba(90,148,245,0.25)');
+  grad.addColorStop(1, 'rgba(90,148,245,0.01)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Revenue line
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = pad.left + (i / (n - 1)) * cW;
+    const y = pad.top + cH - (revData[i] / maxRev) * cH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#5a94f5';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Payment dots
+  for (let i = 0; i < n; i++) {
+    if (payData[i] === 0) continue;
+    const x = pad.left + (i / (n - 1)) * cW;
+    const y = pad.top + cH - (payData[i] / maxPay) * cH;
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── Transaction table ──
+function renderTxTable() {
+  const events = getFilteredEvents();
+  const wrap = document.getElementById('txTableWrap');
+
+  if (events.length === 0) {
+    wrap.innerHTML = '<div class="tx-empty">No transactions in this period.</div>';
+    return;
+  }
+
+  const start = txPage * TX_PER_PAGE;
+  const page = events.slice(start, start + TX_PER_PAGE);
+  const totalPages = Math.ceil(events.length / TX_PER_PAGE);
+
+  let html = `<table class="tx-table">
+    <thead><tr>
+      <th>Payer</th><th>Resource</th><th>Amount</th><th>Access</th><th>Time</th><th>Tx</th>
+    </tr></thead><tbody>`;
+
+  for (const e of page) {
+    const shortAddr = e.payer.slice(0, 6) + '...' + e.payer.slice(-4);
+    const shortTx = e.txHash.slice(0, 8) + '...';
+    const dateStr = new Date(e.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    html += `<tr>
+      <td><a class="addr" href="${EXPLORER}/address/${e.payer}" target="_blank">${shortAddr}</a></td>
+      <td><span class="res-tag">${e.resourceId}</span></td>
+      <td class="amt">${fromWei(e.amount)} APTM</td>
+      <td>${e.lifetime ? '♾ Lifetime' : 'Per-access'}</td>
+      <td class="time">${dateStr}</td>
+      <td><a class="addr" href="${EXPLORER}/tx/${e.txHash}" target="_blank">${shortTx}</a></td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+
+  // Pagination
+  if (totalPages > 1) {
+    html += `<div class="tx-pagination">
+      <button onclick="txPage--;renderTxTable();" ${txPage === 0 ? 'disabled' : ''}>← Prev</button>
+      <span>${txPage + 1} / ${totalPages}</span>
+      <button onclick="txPage++;renderTxTable();" ${txPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+    </div>`;
+  }
+
+  wrap.innerHTML = html;
+}
+
+// ── CSV Export ──
+function exportCSV() {
+  const events = getFilteredEvents();
+  if (events.length === 0) return;
+
+  let csv = 'Payer,Resource,Amount_APTM,Amount_Wei,Lifetime,Timestamp_UTC,Tx_Hash,Block\n';
+  for (const e of events) {
+    const date = new Date(e.timestamp * 1000).toISOString();
+    csv += `${e.payer},${e.resourceId},${fromWei(e.amount)},${e.amount},${e.lifetime},${date},${e.txHash},${e.blockNumber}\n`;
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `a402-revenue-${vaultAddress.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1608,8 +2300,51 @@ async function saveEdit(resourceId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  EMBED COPY
+//  EMBED DROPDOWN
 // ═══════════════════════════════════════════════════════════════
+
+function toggleEmbedDropdown(resourceId, e) {
+  e.stopPropagation();
+  // Close any other open dropdowns
+  document.querySelectorAll('.embed-dropdown.open').forEach(d => {
+    if (d.id !== 'embedDrop-' + resourceId) d.classList.remove('open');
+  });
+  const dd = document.getElementById('embedDrop-' + resourceId);
+  dd.classList.toggle('open');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.embed-wrap')) {
+    document.querySelectorAll('.embed-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+function copyEmbedFormat(resourceId, format, btnEl, e) {
+  e.stopPropagation();
+  const url = `${window.location.origin}/watch.html?vault=${vaultAddress}&resource=${resourceId}`;
+  let text = '';
+
+  if (format === 'link') {
+    text = url;
+  } else if (format === 'iframe') {
+    text = `<iframe src="${url}"\n  width="640" height="400" frameborder="0"\n  allow="ethereum *">\n</iframe>`;
+  } else if (format === 'script') {
+    text = `<div class="a402-content"\n  data-vault="${vaultAddress}"\n  data-resource="${resourceId}">\n</div>\n<script src="https://cdn.a402.io/embed.js"><\/script>`;
+  }
+
+  navigator.clipboard.writeText(text);
+
+  // Show preview
+  const preview = document.getElementById('embedPreview-' + resourceId);
+  preview.textContent = text;
+  preview.classList.add('show');
+
+  // Flash the button
+  btnEl.textContent = 'Copied!';
+  btnEl.classList.add('copied');
+  setTimeout(() => { btnEl.textContent = 'Copy'; btnEl.classList.remove('copied'); }, 1800);
+}
 
 function copyEmbed(resourceId) {
   const url = `${window.location.origin}/watch.html?vault=${vaultAddress}&resource=${resourceId}`;

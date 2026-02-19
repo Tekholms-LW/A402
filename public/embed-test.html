@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A402 Embed Test — Host Page</title>
+  <style>
+    /* This is a typical host page with its own styles */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0e1117; color: #c9d1d9; padding: 40px; line-height: 1.7; }
+    h1 { font-size: 28px; color: #f0f6fc; margin-bottom: 8px; }
+    .subtitle { color: #8b949e; margin-bottom: 32px; font-size: 14px; }
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; margin: 0 auto 40px; }
+    .section { margin-bottom: 40px; max-width: 1100px; margin-left: auto; margin-right: auto; }
+    .section h2 { font-size: 18px; color: #f0f6fc; margin-bottom: 12px; }
+    .section p { font-size: 13px; color: #8b949e; margin-bottom: 16px; }
+    .code-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-top: 8px; overflow-x: auto; }
+    .code-block pre { font-family: 'Fira Code', monospace; font-size: 12px; color: #c9d1d9; white-space: pre-wrap; }
+    .tag { color: #7ee787; }
+    .attr { color: #79c0ff; }
+    .val { color: #a5d6ff; }
+    @media (max-width: 700px) { .content-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <div style="max-width: 1100px; margin: 0 auto;">
+    <h1>A402 Embed Test Page</h1>
+    <p class="subtitle">This simulates a third-party website embedding A402 paywalled content via embed.js</p>
+  </div>
+
+  <!-- ═══ Example 1: Standard dark widget ═══ -->
+  <div class="section">
+    <h2>1. Standard Embed (dark theme, auto)</h2>
+    <p>The simplest integration — just a div with vault + resource attributes.</p>
+
+    <div style="max-width: 640px;">
+      <div class="a402-content"
+           data-vault="0x99848affd96be31241c14700e30342152afd31f1"
+           data-resource="01-digital-identity">
+      </div>
+    </div>
+
+    <div class="code-block">
+      <pre><span class="tag">&lt;div</span> <span class="attr">class</span>=<span class="val">"a402-content"</span>
+     <span class="attr">data-vault</span>=<span class="val">"0x99848affd96be31241c14700e30342152afd31f1"</span>
+     <span class="attr">data-resource</span>=<span class="val">"video-qmeiotst"</span><span class="tag">&gt;&lt;/div&gt;</span>
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="val">"embed.js"</span><span class="tag">&gt;&lt;/script&gt;</span></pre>
+    </div>
+  </div>
+
+  <!-- ═══ Example 2: Light theme ═══ -->
+  <div class="section">
+    <h2>2. Light Theme</h2>
+    <p>Force light theme with <code>data-theme="light"</code>.</p>
+
+    <div style="max-width: 640px;">
+      <div class="a402-content"
+           data-vault="0x99848affd96be31241c14700e30342152afd31f1"
+           data-resource="01-digital-identity"
+           data-theme="light">
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Example 3: Side-by-side ═══ -->
+  <div class="section">
+    <h2>3. Multiple Widgets</h2>
+    <p>Multiple widgets on the same page — each is independent.</p>
+
+    <div class="content-grid">
+      <div class="a402-content"
+           data-vault="0x99848affd96be31241c14700e30342152afd31f1"
+           data-resource="01-digital-identity"
+           data-theme="dark">
+      </div>
+      <div class="a402-content"
+           data-vault="0x99848affd96be31241c14700e30342152afd31f1"
+           data-resource="01-digital-identity"
+           data-theme="light">
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Example 4: Missing resource (error state) ═══ -->
+  <div class="section">
+    <h2>4. Error State (non-existent resource)</h2>
+    <p>Graceful error when the resource doesn't exist on-chain.</p>
+
+    <div style="max-width: 640px;">
+      <div class="a402-content"
+           data-vault="0x99848affd96be31241c14700e30342152afd31f1"
+           data-resource="does-not-exist">
+      </div>
+    </div>
+  </div>
+
+  <!-- Load embed.js AFTER the content divs -->
+  <script src="embed.js"></script>
+
+</body>
+</html>

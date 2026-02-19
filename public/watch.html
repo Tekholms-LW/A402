@@ -15,7 +15,7 @@
       --blue: #3272e8; --blue-light: #5a94f5; --blue-glow: rgba(50,114,232,0.12);
       --green: #22c55e; --green-glow: rgba(34,197,94,0.1);
       --amber: #eab308; --amber-glow: rgba(234,179,8,0.08);
-      --red: #ef4444;
+      --red: #ef4444; --text-muted: #3a4052;
       --mono: 'JetBrains Mono', monospace; --sans: 'Sora', sans-serif;
     }
     body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -211,6 +211,16 @@
     .error-screen { text-align: center; padding: 60px 24px; }
     .error-screen h1 { font-size: 20px; color: var(--text-bright); margin-bottom: 8px; }
     .error-screen p { font-size: 13px; color: var(--text-dim); }
+
+    /* ── HTML5 video player (IPFS/direct) ── */
+    #html5Video {
+      background: #000;
+    }
+    .video-error {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-card);
+    }
   </style>
 </head>
 <body>
@@ -279,6 +289,7 @@
 const RPC = 'https://rpc.apertum.io/ext/bc/YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9zGBq3uQjsCnn/rpc';
 const CHAIN_HEX = '0xae2';
 const EXPLORER = 'https://explorer.apertum.io';
+const IPFS_GATEWAY = 'https://ipfs.io';
 
 // Parse URL params
 const params = new URLSearchParams(window.location.search);
@@ -302,6 +313,62 @@ async function rpc_call(method, params) {
   const d = await r.json(); if(d.error) throw new Error(d.error.message); return d.result;
 }
 async function ethCall(to, data) { return rpc_call('eth_call', [{to, data}, 'latest']); }
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTENT SOURCE DETECTION (YouTube / IPFS / Direct URL)
+// ═══════════════════════════════════════════════════════════════
+
+function detectContentSource(contentRef) {
+  if (!contentRef) return { type: 'unknown', value: '' };
+  const trimmed = contentRef.trim();
+
+  // IPFS protocol URL
+  if (trimmed.startsWith('ipfs://')) return { type: 'ipfs', value: trimmed };
+
+  // IPFS gateway URL
+  if (trimmed.includes('/ipfs/') || trimmed.includes('/ipns/')) return { type: 'ipfs', value: trimmed };
+
+  // Direct video URL (with video extension)
+  const videoExts = /\.(mp4|webm|ogg|mov|m3u8|mkv)(\?.*)?$/i;
+  if ((trimmed.startsWith('http://') || trimmed.startsWith('https://')) && videoExts.test(trimmed)) {
+    return { type: 'direct', value: trimmed };
+  }
+
+  // HTTP(S) URL — check if it's YouTube, otherwise treat as direct
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    const ytMatch = trimmed.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return { type: 'youtube', value: ytMatch[1] };
+    return { type: 'direct', value: trimmed };
+  }
+
+  // Bare IPFS CID
+  if (/^(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})$/.test(trimmed)) {
+    return { type: 'ipfs', value: 'ipfs://' + trimmed };
+  }
+
+  // YouTube video ID (11 chars)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return { type: 'youtube', value: trimmed };
+
+  // Fallback — assume YouTube ID for backward compatibility
+  return { type: 'youtube', value: trimmed };
+}
+
+function resolveVideoUrl(source) {
+  if (source.type === 'youtube') return null;
+  if (source.type === 'ipfs') {
+    const val = source.value;
+    if (val.startsWith('http://') || val.startsWith('https://')) return val;
+    if (val.startsWith('ipfs://')) return `${IPFS_GATEWAY}/ipfs/${val.replace('ipfs://', '')}`;
+    return `${IPFS_GATEWAY}/ipfs/${val}`;
+  }
+  if (source.type === 'direct') return source.value;
+  return null;
+}
+
+function getThumbnailUrl(source) {
+  if (source.type === 'youtube') return `https://img.youtube.com/vi/${source.value}/hqdefault.jpg`;
+  return null;
+}
 
 // ── Init ──
 (async function init() {
@@ -363,15 +430,33 @@ async function ethCall(to, data) { return rpc_call('eth_call', [{to, data}, 'lat
       document.getElementById('actionBtn').textContent = 'Resource Paused';
     }
 
-    // Show thumbnail if video
+    // Show thumbnail (supports YouTube + IPFS + direct)
     if (contentType === 'video' && contentRef) {
-      const img = document.createElement('img');
-      img.src = `https://img.youtube.com/vi/${contentRef}/hqdefault.jpg`;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:0;';
-      document.getElementById('videoArea').insertBefore(img, document.getElementById('lockOverlay'));
+      const source = detectContentSource(contentRef);
+      const thumbUrl = getThumbnailUrl(source);
+
+      if (thumbUrl) {
+        // YouTube — show thumbnail
+        const img = document.createElement('img');
+        img.src = thumbUrl;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:0;';
+        document.getElementById('videoArea').insertBefore(img, document.getElementById('lockOverlay'));
+      } else {
+        // IPFS/Direct — show a styled video icon placeholder
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a0b0d,#141620);';
+        const sourceLabel = source.type === 'ipfs' ? 'IPFS Video' : 'Direct Video';
+        placeholder.innerHTML = `
+          <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:rgba(255,255,255,0.15);fill:none;stroke-width:1.5;">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <span style="font-size:11px;color:rgba(255,255,255,0.2);font-family:var(--mono);">${sourceLabel}</span>
+        `;
+        document.getElementById('videoArea').insertBefore(placeholder, document.getElementById('lockOverlay'));
+      }
     }
 
-    // Auto-reconnect: if wallet is already connected and on Apertum, skip straight to pay or unlock
+    // Auto-reconnect
     if (active && window.ethereum) {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -380,7 +465,6 @@ async function ethCall(to, data) { return rpc_call('eth_call', [{to, data}, 'lat
           if (chainId === CHAIN_HEX) {
             userAddress = accounts[0];
 
-            // Check lifetime access
             if (lifetime) {
               const hs = sel('hasAccess(string,address)');
               const hd = '0x' + hs + padUint(64) + padAddr(userAddress) + encStr(RESOURCE);
@@ -391,7 +475,6 @@ async function ethCall(to, data) { return rpc_call('eth_call', [{to, data}, 'lat
               }
             }
 
-            // Wallet connected but no access yet — show pay button
             state = 'connected';
             const priceAptm = fromWei(price);
             const btn = document.getElementById('actionBtn');
@@ -457,7 +540,6 @@ async function connectWallet() {
     btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${priceAptm} APTM`;
     showStatus('info', 'Wallet connected. Estimating total cost...');
 
-    // Estimate gas in background
     estimatePayGas().then(() => {
       showStatus('info', 'Wallet connected. Click to pay and unlock.');
     }).catch(() => {
@@ -477,12 +559,10 @@ async function pay() {
   showStatus('pending', 'Confirm the transaction in your wallet...');
 
   try {
-    // Generate nonce
     const nonceBytes = new Uint8Array(32);
     crypto.getRandomValues(nonceBytes);
     const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Encode payForAccess(string resourceId, bytes32 nonce)
     const s = sel('payForAccess(string,bytes32)');
     const data = '0x' + s + padUint(64) + nonce.replace('0x', '') + encStr(RESOURCE);
 
@@ -495,7 +575,6 @@ async function pay() {
     document.getElementById('txLink').classList.add('show');
     document.getElementById('txLink').innerHTML = `Tx: <a href="${EXPLORER}/tx/${txHash}" target="_blank">${txHash}</a>`;
 
-    // Poll for receipt
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 1500));
       const receipt = await rpc_call('eth_getTransactionReceipt', [txHash]);
@@ -521,7 +600,6 @@ async function pay() {
 // ── Gas Estimation ──
 async function estimatePayGas() {
   try {
-    // Build the same calldata as pay()
     const nonceBytes = new Uint8Array(32);
     crypto.getRandomValues(nonceBytes);
     const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -539,50 +617,56 @@ async function estimatePayGas() {
     const gasCostWei = gasUnits * gasPriceWei;
     const totalWei = BigInt(resourceConfig.price) + gasCostWei;
 
-    const gasAptm = fromWei(gasCostWei.toString());
-    const totalAptm = fromWei(totalWei.toString());
-
-    document.getElementById('gasDisplay').innerHTML = `~${gasAptm}<span class="cur">APTM</span>`;
-    document.getElementById('totalDisplay').innerHTML = `~${totalAptm}<span class="cur" style="color:var(--green);">APTM</span>`;
+    document.getElementById('gasDisplay').innerHTML = `~${fromWei(gasCostWei.toString())}<span class="cur">APTM</span>`;
+    document.getElementById('totalDisplay').innerHTML = `~${fromWei(totalWei.toString())}<span class="cur" style="color:var(--green);">APTM</span>`;
     document.getElementById('gasRow').style.display = 'flex';
     document.getElementById('totalRow').style.display = 'flex';
   } catch (err) {
-    // Silently fail — price row is still visible, just no gas breakdown
+    // Silently fail — price row is still visible
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  UNLOCK CONTENT — routes to YouTube or HTML5 player
+// ═══════════════════════════════════════════════════════════════
 
 function unlockContent() {
   state = 'unlocked';
   document.getElementById('lockOverlay').classList.add('hidden');
 
   if (resourceConfig.contentType === 'video' && resourceConfig.contentRef) {
-    buildPlayer(resourceConfig.contentRef);
+    const source = detectContentSource(resourceConfig.contentRef);
+
+    if (source.type === 'youtube') {
+      buildYouTubePlayer(source.value);
+    } else {
+      const videoUrl = resolveVideoUrl(source);
+      if (videoUrl) buildHTML5Player(videoUrl);
+    }
   }
 
-  // Switch to minimal mode — collapse payment UI, let video breathe
+  // Switch to minimal mode
   document.querySelector('.container').classList.add('unlocked');
   document.querySelector('.body').classList.add('minimal');
   document.getElementById('actionBtn').style.display = 'none';
   document.querySelector('.header').style.display = 'none';
   document.querySelector('.footer').style.display = 'none';
 
-  // Set the minimal bar label
   document.getElementById('minimalLabel').textContent =
     resourceConfig.lifetime ? 'Lifetime Access' : 'Access Granted';
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  CUSTOM YOUTUBE PLAYER
+//  YOUTUBE PLAYER (existing)
 // ═══════════════════════════════════════════════════════════════
 
 let ytPlayer = null;
 let seekInterval = null;
 let isSeeking = false;
 
-function buildPlayer(videoId) {
+function buildYouTubePlayer(videoId) {
   const area = document.getElementById('videoArea');
 
-  // Build player HTML
   const wrap = document.createElement('div');
   wrap.className = 'player-wrap paused';
   wrap.id = 'playerWrap';
@@ -618,7 +702,6 @@ function buildPlayer(videoId) {
   `;
   area.insertBefore(wrap, document.getElementById('lockOverlay'));
 
-  // Load YouTube IFrame API
   const tag = document.createElement('script');
   tag.src = 'https://www.youtube.com/iframe_api';
   document.head.appendChild(tag);
@@ -629,19 +712,10 @@ function buildPlayer(videoId) {
       width: '100%',
       height: '100%',
       playerVars: {
-        autoplay: 1,
-        controls: 0,       // hide native controls
-        rel: 0,
-        modestbranding: 1,
-        showinfo: 0,
-        iv_load_policy: 3, // no annotations
-        disablekb: 1,
-        playsinline: 1,
+        autoplay: 1, controls: 0, rel: 0, modestbranding: 1,
+        showinfo: 0, iv_load_policy: 3, disablekb: 1, playsinline: 1,
       },
-      events: {
-        onReady: onPlayerReady,
-        onStateChange: onPlayerStateChange,
-      }
+      events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange },
     });
   };
 }
@@ -650,20 +724,16 @@ function onPlayerReady(e) {
   const player = e.target;
   player.setVolume(80);
 
-  // Remove force-show after 2s
   setTimeout(() => {
     document.getElementById('playerControls').classList.remove('force-show');
   }, 2000);
 
-  // Start seek update loop
   seekInterval = setInterval(updateSeek, 250);
 
-  // Wire up controls
   document.getElementById('clickZone').addEventListener('click', togglePlayPause);
   document.getElementById('centerPlay').addEventListener('click', togglePlayPause);
   document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
 
-  // Seek bar
   const seekBar = document.getElementById('seekBar');
   seekBar.addEventListener('input', () => {
     isSeeking = true;
@@ -677,7 +747,6 @@ function onPlayerReady(e) {
     isSeeking = false;
   });
 
-  // Volume
   document.getElementById('volBar').addEventListener('input', (e) => {
     const vol = parseInt(e.target.value);
     ytPlayer.setVolume(vol);
@@ -685,16 +754,10 @@ function onPlayerReady(e) {
     updateVolIcon(vol);
   });
   document.getElementById('volBtn').addEventListener('click', () => {
-    if (ytPlayer.isMuted()) {
-      ytPlayer.unMute();
-      updateVolIcon(ytPlayer.getVolume());
-    } else {
-      ytPlayer.mute();
-      updateVolIcon(0);
-    }
+    if (ytPlayer.isMuted()) { ytPlayer.unMute(); updateVolIcon(ytPlayer.getVolume()); }
+    else { ytPlayer.mute(); updateVolIcon(0); }
   });
 
-  // Fullscreen
   document.getElementById('fsBtn').addEventListener('click', () => {
     const wrap = document.getElementById('playerWrap');
     if (document.fullscreenElement) document.exitFullscreen();
@@ -729,11 +792,8 @@ function updateSeek() {
   if (dur > 0) {
     document.getElementById('seekBar').value = (cur / dur) * 1000;
     document.getElementById('timeDisplay').textContent = fmtTime(cur) + ' / ' + fmtTime(dur);
-
-    // Update seek bar fill color
     const pct = (cur / dur) * 100;
-    const bar = document.getElementById('seekBar');
-    bar.style.background = `linear-gradient(to right, var(--blue-light) ${pct}%, rgba(255,255,255,0.15) ${pct}%)`;
+    document.getElementById('seekBar').style.background = `linear-gradient(to right, var(--blue-light) ${pct}%, rgba(255,255,255,0.15) ${pct}%)`;
   }
 }
 
@@ -747,6 +807,55 @@ function fmtTime(s) {
   const sec = Math.floor(s % 60);
   return m + ':' + sec.toString().padStart(2, '0');
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  HTML5 VIDEO PLAYER (IPFS / Direct URL)
+// ═══════════════════════════════════════════════════════════════
+
+let html5Player = null;
+
+function buildHTML5Player(videoUrl) {
+  const area = document.getElementById('videoArea');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'player-wrap';
+  wrap.id = 'playerWrap';
+  wrap.innerHTML = `
+    <video id="html5Video"
+      src="${videoUrl}"
+      autoplay
+      controls
+      playsinline
+      style="width:100%; height:100%; background:#000; object-fit:contain;">
+      Your browser does not support the video tag.
+    </video>
+    <div class="video-error" id="videoError" style="display:none;">
+      <div style="text-align:center; color:var(--text-dim); padding:24px;">
+        <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--text-muted);fill:none;stroke-width:1.5;margin-bottom:12px;">
+          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <div style="font-size:14px;color:var(--text-bright);margin-bottom:6px;">Video failed to load</div>
+        <div style="font-size:12px;margin-bottom:12px;">The source may be temporarily unavailable or the format may not be supported by your browser.</div>
+        <a href="${videoUrl}" target="_blank" rel="noopener"
+          style="color:var(--blue-light);font-size:12px;text-decoration:none;">
+          Open video URL directly →
+        </a>
+      </div>
+    </div>
+  `;
+  area.insertBefore(wrap, document.getElementById('lockOverlay'));
+
+  html5Player = document.getElementById('html5Video');
+
+  html5Player.addEventListener('error', function() {
+    document.getElementById('videoError').style.display = 'flex';
+    html5Player.style.display = 'none';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════
 
 function showStatus(type, msg) {
   const el = document.getElementById('statusMsg');
