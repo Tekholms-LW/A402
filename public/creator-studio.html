@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A402 Creator Studio · Apertum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- js-sha3 for keccak256 (function selectors + ABI encoding) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #060709;
+      --bg-raised: #0b0d13;
+      --bg-panel: #0f1219;
+      --bg-input: #131720;
+      --bg-hover: #161b26;
+      --border: #1c2233;
+      --border-light: #242d40;
+      --border-focus: #3272e8;
+      --text: #b8bfce;
+      --text-dim: #5c6478;
+      --text-bright: #eaf0f9;
+      --text-muted: #3a4052;
+      --blue: #3272e8;
+      --blue-light: #5a94f5;
+      --blue-glow: rgba(50, 114, 232, 0.12);
+      --blue-dim: rgba(50, 114, 232, 0.06);
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.1);
+      --amber: #eab308;
+      --amber-glow: rgba(234, 179, 8, 0.08);
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.08);
+      --violet: #8b5cf6;
+      --violet-glow: rgba(139, 92, 246, 0.08);
+      --r: 10px;
+      --r-lg: 14px;
+      --r-xl: 18px;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Sora', system-ui, sans-serif;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh;
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Ambient background ── */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .ambient .orb {
+      position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.07;
+      animation: orb-drift 22s ease-in-out infinite alternate;
+    }
+    .ambient .orb.o1 { width: 700px; height: 700px; top: -300px; left: -200px; background: var(--blue); }
+    .ambient .orb.o2 { width: 500px; height: 500px; bottom: -200px; right: -150px; background: var(--violet); animation-delay: -8s; }
+    @keyframes orb-drift { to { transform: translate(50px, -40px) scale(1.1); } }
+
+    /* ── Shell ── */
+    .shell { position: relative; z-index: 1; display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--bg-raised); border-right: 1px solid var(--border);
+      padding: 24px 16px; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sb-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 32px; padding: 0 8px; }
+    .sb-mark {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      display: grid; place-items: center;
+      font-family: var(--mono); font-weight: 600; font-size: 14px; color: #fff;
+    }
+    .sb-name { font-size: 13px; font-weight: 600; color: var(--text-bright); }
+    .sb-name small { display: block; font-size: 10px; font-weight: 400; color: var(--text-dim); font-family: var(--mono); margin-top: 1px; }
+
+    .sb-section { margin-bottom: 24px; }
+    .sb-label {
+      font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 1.6px;
+      color: var(--text-muted); margin-bottom: 8px; padding-left: 10px;
+    }
+    .sb-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 10px; border-radius: 8px;
+      font-size: 12.5px; color: var(--text-dim);
+      cursor: pointer; transition: all 0.15s var(--ease);
+      border: 1px solid transparent; user-select: none;
+    }
+    .sb-item:hover { color: var(--text); background: rgba(255,255,255,0.015); }
+    .sb-item.active { color: var(--text-bright); background: var(--blue-glow); border-color: rgba(50,114,232,0.12); }
+    .sb-item.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+    .sb-item svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .sb-badge {
+      margin-left: auto; font-family: var(--mono); font-size: 9px;
+      padding: 2px 6px; border-radius: 8px;
+      background: var(--blue-dim); color: var(--blue-light);
+    }
+
+    .sb-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+    .sb-wallet {
+      padding: 10px; border-radius: 8px;
+      background: var(--green-glow); border: 1px solid rgba(34,197,94,0.1);
+      font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+      display: none; flex-direction: column; gap: 4px;
+    }
+    .sb-wallet.show { display: flex; }
+    .sb-wallet .addr { color: var(--green); font-weight: 500; }
+    .sb-wallet .vault-addr { color: var(--text-dim); word-break: break-all; }
+    .sb-chain {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 10px; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    }
+    .sb-chain-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2.5s ease infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    /* ── Main ── */
+    .main { padding: 32px 40px 80px; overflow-y: auto; }
+
+    /* ── Page views ── */
+    .page { display: none; animation: pageIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-title { font-size: 24px; font-weight: 700; color: var(--text-bright); letter-spacing: -0.3px; margin-bottom: 6px; }
+    .page-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 32px; max-width: 560px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 28px; margin-bottom: 20px;
+    }
+    .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .card-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: grid; place-items: center;
+      background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.1);
+    }
+    .card-icon svg { width: 14px; height: 14px; stroke: var(--blue-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .card-icon.green { background: var(--green-glow); border-color: rgba(34,197,94,0.1); }
+    .card-icon.green svg { stroke: var(--green); }
+    .card-icon.violet { background: var(--violet-glow); border-color: rgba(139,92,246,0.1); }
+    .card-icon.violet svg { stroke: var(--violet); }
+    .card-icon.amber { background: var(--amber-glow); border-color: rgba(234,179,8,0.1); }
+    .card-icon.amber svg { stroke: var(--amber); }
+    .card h2 { font-size: 15px; font-weight: 600; color: var(--text-bright); }
+    .card .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 22px; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 18px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 500; color: var(--text);
+      font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.2px;
+    }
+    .field label .req { color: var(--red); }
+    .field label .hint { display: block; font-family: var(--sans); font-weight: 300; font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 10px 13px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-bright);
+      font-family: var(--mono); font-size: 12.5px;
+      transition: all 0.15s var(--ease); outline: none;
+    }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
+    .field input:focus, .field textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--blue-glow); }
+    .field textarea { resize: vertical; min-height: 72px; font-family: var(--sans); font-size: 12.5px; line-height: 1.5; }
+    .field select { cursor: pointer; appearance: none; }
+    .field .input-with-tag { display: grid; grid-template-columns: 1fr auto; gap: 0; }
+    .field .input-tag {
+      padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border);
+      border-left: none; border-radius: 0 8px 8px 0;
+      font-family: var(--mono); font-size: 12px; color: var(--blue-light); font-weight: 500;
+      display: flex; align-items: center;
+    }
+    .field .input-with-tag input { border-radius: 8px 0 0 8px; }
+
+    /* ── Thumbnail preview ── */
+    .thumb-preview {
+      max-width: 420px; aspect-ratio: 16/9; border-radius: var(--r);
+      background: #0a0a0a; border: 1px solid var(--border);
+      overflow: hidden; position: relative; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-preview .placeholder { font-size: 12px; color: var(--text-muted); font-family: var(--mono); text-align: center; padding: 20px; }
+
+    /* ── Toggle ── */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-radius: var(--r);
+      background: var(--bg-input); border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.15s var(--ease); user-select: none;
+    }
+    .toggle-row:hover { border-color: var(--border-light); }
+    .toggle-info { font-size: 12.5px; color: var(--text); }
+    .toggle-info small { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .toggle-track {
+      width: 40px; height: 22px; border-radius: 11px;
+      background: var(--border); position: relative;
+      transition: background 0.2s var(--ease); flex-shrink: 0;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: transform 0.2s var(--ease);
+    }
+    .toggle-row.on .toggle-track { background: var(--green); }
+    .toggle-row.on .toggle-track::after { transform: translateX(18px); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 11px 22px; border-radius: var(--r); border: none;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s var(--ease);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-primary { background: linear-gradient(135deg, var(--blue), #4a6af5); color: #fff; box-shadow: 0 4px 18px var(--blue-glow); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(50,114,232,0.2); }
+    .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--border-light); color: var(--text-bright); }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-green:hover { filter: brightness(1.1); }
+    .btn-red { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.15); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .btn-sm { padding: 7px 14px; font-size: 11px; }
+    .btn-row { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+    .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Wizard steps ── */
+    .wiz-bar { display: flex; gap: 4px; margin-bottom: 28px; }
+    .wiz-seg {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: var(--border); transition: background 0.3s;
+    }
+    .wiz-seg.done { background: var(--green); }
+    .wiz-seg.current { background: var(--blue); }
+
+    /* ── Status ── */
+    .status-bar {
+      padding: 12px 16px; border-radius: var(--r);
+      font-family: var(--mono); font-size: 12px; line-height: 1.5;
+      margin-top: 16px; display: none;
+    }
+    .status-bar.show { display: block; animation: pageIn 0.25s ease; }
+    .status-bar.info { background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.12); color: var(--blue-light); }
+    .status-bar.success { background: var(--green-glow); border: 1px solid rgba(34,197,94,0.12); color: var(--green); }
+    .status-bar.error { background: var(--red-glow); border: 1px solid rgba(239,68,68,0.12); color: var(--red); }
+    .status-bar.pending { background: var(--amber-glow); border: 1px solid rgba(234,179,8,0.12); color: var(--amber); }
+    .status-bar a { color: inherit; }
+
+    /* ── Connect screen ── */
+    .connect-screen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 60vh; text-align: center;
+    }
+    .connect-icon {
+      width: 80px; height: 80px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--blue-glow), var(--violet-glow));
+      border: 1px solid rgba(50,114,232,0.1);
+      display: grid; place-items: center; margin-bottom: 24px;
+    }
+    .connect-icon svg { width: 36px; height: 36px; stroke: var(--blue-light); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .connect-screen h1 { font-size: 26px; font-weight: 700; color: var(--text-bright); margin-bottom: 8px; }
+    .connect-screen p { font-size: 14px; color: var(--text-dim); max-width: 400px; margin-bottom: 28px; }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      padding: 20px; border-radius: var(--r-lg);
+      background: var(--bg-panel); border: 1px solid var(--border);
+    }
+    .stat-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; }
+    .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-bright); }
+    .stat-value .unit { font-size: 12px; font-weight: 400; color: var(--blue-light); margin-left: 3px; }
+    .stat-card.highlight { border-color: rgba(34,197,94,0.15); background: rgba(34,197,94,0.03); }
+    .stat-card.highlight .stat-value { color: var(--green); }
+
+    /* ── Resource list ── */
+    .res-list { display: flex; flex-direction: column; gap: 12px; }
+    .res-item {
+      padding: 18px 20px; border-radius: var(--r-lg);
+      background: var(--bg-panel); border: 1px solid var(--border);
+      display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+      transition: border-color 0.15s var(--ease);
+    }
+    .res-item:hover { border-color: var(--border-light); }
+    .res-meta { display: flex; flex-direction: column; gap: 6px; }
+    .res-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .res-id { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text-bright); }
+    .res-badge {
+      font-family: var(--mono); font-size: 9.5px; padding: 3px 8px;
+      border-radius: 5px; font-weight: 500;
+    }
+    .res-badge.video { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(50,114,232,0.1); }
+    .res-badge.lifetime { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
+    .res-badge.per-access { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
+    .res-badge.active { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
+    .res-badge.paused { background: var(--red-glow); color: var(--red); border: 1px solid rgba(239,68,68,0.1); }
+    .res-stats { font-family: var(--mono); font-size: 11px; color: var(--text-dim); display: flex; gap: 16px; }
+    .res-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Embed code block ── */
+    .code-block {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; margin-top: 12px;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; background: rgba(255,255,255,0.01);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    }
+    .code-header .copy-btn {
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      padding: 3px 8px; font-family: var(--mono); font-size: 9px;
+      color: var(--text-dim); cursor: pointer;
+    }
+    .code-header .copy-btn:hover { border-color: var(--blue); color: var(--blue-light); }
+    .code-block pre {
+      padding: 14px; font-family: var(--mono); font-size: 11.5px;
+      color: var(--text); line-height: 1.7; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      border: 1px dashed var(--border); border-radius: var(--r-lg);
+    }
+    .empty-state p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; flex-direction: row; flex-wrap: wrap; padding: 14px; gap: 8px; }
+      .sb-section, .sb-footer { display: none; }
+      .main { padding: 20px 16px 60px; }
+      .field-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .res-item { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient"><div class="orb o1"></div><div class="orb o2"></div></div>
+
+  <div class="shell">
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="sb-mark">A</div>
+        <div class="sb-name">Creator Studio<small>A402 · Apertum</small></div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Dashboard</div>
+        <div class="sb-item active" data-page="add-content" onclick="showPage('add-content')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Add Content
+        </div>
+        <div class="sb-item" data-page="my-content" onclick="showPage('my-content')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          My Content
+          <span class="sb-badge" id="contentCount">0</span>
+        </div>
+        <div class="sb-item" data-page="revenue" onclick="showPage('revenue')">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Revenue
+        </div>
+      </div>
+
+      <div class="sb-footer">
+        <div class="sb-wallet" id="sidebarWallet">
+          <span class="addr" id="sidebarAddr"></span>
+          <span class="vault-addr" id="sidebarVault"></span>
+        </div>
+        <div class="sb-chain"><div class="sb-chain-dot"></div> eip155:2786 · Apertum</div>
+      </div>
+    </aside>
+
+    <!-- ═══ MAIN ═══ -->
+    <main class="main" id="mainContent">
+
+      <!-- ── CONNECT SCREEN ── -->
+      <div class="page active" id="page-connect">
+        <div class="connect-screen">
+          <div class="connect-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
+          </div>
+          <h1>Welcome to Creator Studio</h1>
+          <p>Connect your wallet to create a vault and start monetizing your content on Apertum.</p>
+          <button class="btn btn-primary" onclick="connectWallet()" id="connectBtn">
+            <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
+            Connect Wallet
+          </button>
+          <div class="status-bar" id="connectStatus"></div>
+        </div>
+      </div>
+
+      <!-- ── VAULT CREATION SCREEN ── -->
+      <div class="page" id="page-create-vault">
+        <div class="connect-screen">
+          <div class="connect-icon" style="background: linear-gradient(135deg, var(--green-glow), var(--blue-glow));">
+            <svg viewBox="0 0 24 24" style="stroke: var(--green);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h1>Create Your Vault</h1>
+          <p>Your vault is your on-chain identity on A402. It's a smart contract that receives payments and tracks your content. One-time setup, costs ~0.002 APTM.</p>
+          <button class="btn btn-green" onclick="createVault()" id="createVaultBtn">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Create Vault (~0.002 APTM)
+          </button>
+          <div class="status-bar" id="vaultStatus"></div>
+        </div>
+      </div>
+
+      <!-- ── ADD CONTENT ── -->
+      <div class="page" id="page-add-content">
+        <h1 class="page-title">Add Content</h1>
+        <p class="page-desc">Set up a paid video. One transaction publishes it on-chain.</p>
+
+        <div class="wiz-bar">
+          <div class="wiz-seg current" id="wiz0"></div>
+          <div class="wiz-seg" id="wiz1"></div>
+          <div class="wiz-seg" id="wiz2"></div>
+        </div>
+
+        <!-- Step 0: Content -->
+        <div id="addStep0">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+              <h2>Video Details</h2>
+            </div>
+            <p class="sub">Enter the YouTube video you want to gate behind a payment wall.</p>
+
+            <div class="field">
+              <label>YouTube URL or Video ID <span class="req">*</span>
+                <span class="hint">Paste any YouTube link — we'll extract the video ID automatically</span>
+              </label>
+              <input type="text" id="ytInput" placeholder="https://youtube.com/watch?v=..." oninput="parseYouTube()">
+            </div>
+
+            <div class="thumb-preview" id="thumbPreview">
+              <div class="placeholder">Video thumbnail will appear here</div>
+            </div>
+
+            <div class="field">
+              <label>Resource ID <span class="req">*</span>
+                <span class="hint">Unique on-chain identifier (auto-generated, editable)</span>
+              </label>
+              <input type="text" id="resId" placeholder="video-001">
+            </div>
+
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="addStep(1)">
+                Continue
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Pricing -->
+        <div id="addStep1" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-icon green"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+              <h2>Pricing & Access</h2>
+            </div>
+            <p class="sub">Set the price. The contract enforces it — no one can pay less.</p>
+
+            <div class="field">
+              <label>Price <span class="req">*</span></label>
+              <div class="input-with-tag">
+                <input type="number" id="priceInput" value="0.001" min="0.0001" step="0.0001">
+                <div class="input-tag">APTM</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="toggle-row on" id="lifetimeToggle" onclick="toggleLifetime()">
+                <div class="toggle-info">
+                  Lifetime Access
+                  <small>Viewers pay once and get permanent on-chain access</small>
+                </div>
+                <div class="toggle-track"></div>
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn btn-secondary" onclick="addStep(0)">
+                <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+              </button>
+              <button class="btn btn-primary" onclick="addStep(2)">
+                Review & Publish
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Review & Publish -->
+        <div id="addStep2" style="display:none;">
+          <div class="card">
+            <div class="card-head">
+              <div class="card-icon amber"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <h2>Review & Publish</h2>
+            </div>
+            <p class="sub">Confirm the details. Publishing calls <code>vault.addResource()</code> on-chain.</p>
+
+            <div class="thumb-preview" id="reviewThumb">
+              <div class="placeholder">—</div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
+              <div class="stat-card">
+                <div class="stat-label">Resource ID</div>
+                <div class="stat-value" id="reviewResId" style="font-size:14px;">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Price</div>
+                <div class="stat-value" id="reviewPrice" style="font-size:14px;">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Access</div>
+                <div class="stat-value" id="reviewAccess" style="font-size:14px;">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">YouTube ID</div>
+                <div class="stat-value" id="reviewYtId" style="font-size:14px;">—</div>
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn btn-secondary" onclick="addStep(1)">
+                <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+              </button>
+              <button class="btn btn-green" onclick="publishResource()" id="publishBtn">
+                <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Publish On-Chain
+              </button>
+            </div>
+            <div class="status-bar" id="publishStatus"></div>
+
+            <!-- Embed codes shown after publish -->
+            <div id="embedOutput" style="display:none; margin-top:24px;">
+              <h2 style="font-size:14px; color:var(--text-bright); margin-bottom:12px;">Your Embed Codes</h2>
+              <div class="code-block">
+                <div class="code-header"><span>Hosted Link</span><button class="copy-btn" onclick="copyText('embedLink')">Copy</button></div>
+                <pre id="embedLink"></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>iframe Embed</span><button class="copy-btn" onclick="copyText('embedIframe')">Copy</button></div>
+                <pre id="embedIframe"></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header"><span>Script Embed</span><button class="copy-btn" onclick="copyText('embedScript')">Copy</button></div>
+                <pre id="embedScript"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MY CONTENT ── -->
+      <div class="page" id="page-my-content">
+        <h1 class="page-title">My Content</h1>
+        <p class="page-desc">All resources registered in your vault. Data is read directly from the blockchain.</p>
+        <div id="contentList">
+          <div class="empty-state">
+            <p>Loading resources from your vault...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REVENUE ── -->
+      <div class="page" id="page-revenue">
+        <h1 class="page-title">Revenue</h1>
+        <p class="page-desc">Earnings from your vault. All numbers come directly from on-chain data.</p>
+
+        <div class="stats-grid" id="revenueStats">
+          <div class="stat-card highlight">
+            <div class="stat-label">Available Balance</div>
+            <div class="stat-value" id="statBalance">—<span class="unit">APTM</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="statRevenue">—<span class="unit">APTM</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Withdrawn</div>
+            <div class="stat-value" id="statWithdrawn">—<span class="unit">APTM</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Resources</div>
+            <div class="stat-value" id="statResources">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon green"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            <h2>Withdraw</h2>
+          </div>
+          <p class="sub">Pull your accumulated earnings from the vault to your wallet.</p>
+          <div class="btn-row" style="margin-top:0;">
+            <button class="btn btn-green" onclick="withdrawAll()" id="withdrawBtn">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Withdraw All
+            </button>
+          </div>
+          <div class="status-bar" id="withdrawStatus"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+            <h2>Per-Resource Breakdown</h2>
+          </div>
+          <p class="sub">Revenue and payment counts for each resource.</p>
+          <div id="revenueBreakdown" style="margin-top:8px;">
+            <div style="font-family:var(--mono); font-size:12px; color:var(--text-dim);">Loading...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon violet"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <h2>Vault Details</h2>
+          </div>
+          <p class="sub">Your on-chain vault contract.</p>
+          <div style="font-family:var(--mono); font-size:12px; color:var(--text-dim); word-break:break-all;">
+            <div style="margin-bottom:6px;">Vault: <a id="vaultLink" href="#" target="_blank" style="color:var(--blue-light); text-decoration:none;"></a></div>
+            <div>Explorer: <a id="explorerLink" href="#" target="_blank" style="color:var(--blue-light); text-decoration:none;">View on Apertum Explorer</a></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const FACTORY = '0xd532767bD126354A9e14A96081c5A4136192dB7E';
+const RPC = 'https://rpc.apertum.io/ext/bc/YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9zGBq3uQjsCnn/rpc';
+const CHAIN_ID = 2786;
+const CHAIN_HEX = '0x' + CHAIN_ID.toString(16);
+const EXPLORER = 'https://explorer.apertum.io';
+
+// ═══════════════════════════════════════════════════════════════
+//  ABI ENCODING HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function selector(sig) { return keccak256(sig).slice(0, 8); }
+function pad32(hex) { return hex.replace('0x','').padStart(64, '0'); }
+function padAddr(a) { return pad32(a.replace('0x','').toLowerCase()); }
+function padUint(n) { return BigInt(n).toString(16).padStart(64, '0'); }
+function padBool(b) { return padUint(b ? 1 : 0); }
+
+function encodeString(s) {
+  const bytes = new TextEncoder().encode(s);
+  const len = padUint(bytes.length);
+  let hex = '';
+  for (const b of bytes) hex += b.toString(16).padStart(2, '0');
+  return len + hex.padEnd(Math.ceil(hex.length / 64) * 64, '0');
+}
+
+function toWei(aptm) {
+  const s = aptm.toString();
+  const parts = s.split('.');
+  const whole = parts[0] || '0';
+  const frac = (parts[1] || '').padEnd(18, '0').slice(0, 18);
+  return BigInt(whole + frac).toString();
+}
+
+function fromWei(wei) {
+  const s = BigInt(wei).toString().padStart(19, '0');
+  const whole = s.slice(0, -18) || '0';
+  const frac = s.slice(-18).replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RPC HELPER
+// ═══════════════════════════════════════════════════════════════
+
+async function rpc(method, params) {
+  const r = await fetch(RPC, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params }),
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.result;
+}
+
+async function ethCall(to, data) {
+  return rpc('eth_call', [{ to, data }, 'latest']);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════════════════
+
+let userAddress = null;
+let vaultAddress = null;
+let lifetimeAccess = true;
+let parsedYtId = '';
+let currentAddStep = 0;
+
+// ═══════════════════════════════════════════════════════════════
+//  PAGE NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+
+function showPage(id) {
+  if (!vaultAddress && id !== 'connect' && id !== 'create-vault') return;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + id);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i => {
+    i.classList.toggle('active', i.dataset.page === id);
+  });
+  if (id === 'my-content') loadMyContent();
+  if (id === 'revenue') loadRevenue();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WALLET CONNECTION
+// ═══════════════════════════════════════════════════════════════
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    setStatus('connectStatus', 'error', 'No wallet detected. Please install MetaMask.');
+    return;
+  }
+
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Connecting...';
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAddress = accounts[0];
+
+    // Switch to Apertum
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (chainId !== CHAIN_HEX) {
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+      } catch (e) {
+        if (e.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: CHAIN_HEX, chainName: 'Apertum',
+              nativeCurrency: { name: 'APTM', symbol: 'APTM', decimals: 18 },
+              rpcUrls: [RPC], blockExplorerUrls: [EXPLORER],
+            }],
+          });
+        } else throw e;
+      }
+    }
+
+    setStatus('connectStatus', 'info', 'Checking for existing vault...');
+
+    // Check factory for existing vault
+    // hasVault(address) selector
+    const hasVaultSel = selector('hasVault(address)');
+    const hasVaultData = '0x' + hasVaultSel + padAddr(userAddress);
+    const hasVaultResult = await ethCall(FACTORY, hasVaultData);
+    const hasVault = BigInt(hasVaultResult) === 1n;
+
+    if (hasVault) {
+      // Get vault address
+      const getVaultSel = selector('getVault(address)');
+      const getVaultData = '0x' + getVaultSel + padAddr(userAddress);
+      const vaultResult = await ethCall(FACTORY, getVaultData);
+      vaultAddress = '0x' + vaultResult.slice(-40);
+      enterDashboard();
+    } else {
+      // Show vault creation screen
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-create-vault').classList.add('active');
+    }
+
+  } catch (err) {
+    setStatus('connectStatus', 'error', 'Connection failed: ' + (err.message || err));
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg> Connect Wallet';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VAULT CREATION
+// ═══════════════════════════════════════════════════════════════
+
+async function createVault() {
+  const btn = document.getElementById('createVaultBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Creating vault...';
+  setStatus('vaultStatus', 'pending', 'Confirm the transaction in your wallet...');
+
+  try {
+    const createVaultSel = selector('createVault()');
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddress, to: FACTORY, data: '0x' + createVaultSel }],
+    });
+
+    setStatus('vaultStatus', 'pending', 'Transaction sent, waiting for confirmation...');
+
+    // Poll for receipt
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    if (!receipt || receipt.status !== '0x1') {
+      throw new Error('Transaction failed on-chain');
+    }
+
+    // Get vault address from factory
+    const getVaultSel = selector('getVault(address)');
+    const getVaultData = '0x' + getVaultSel + padAddr(userAddress);
+    const vaultResult = await ethCall(FACTORY, getVaultData);
+    vaultAddress = '0x' + vaultResult.slice(-40);
+
+    setStatus('vaultStatus', 'success', 'Vault created! ' + vaultAddress);
+    await new Promise(r => setTimeout(r, 1000));
+    enterDashboard();
+
+  } catch (err) {
+    setStatus('vaultStatus', 'error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Create Vault (~0.002 APTM)';
+  }
+}
+
+function enterDashboard() {
+  // Update sidebar
+  document.getElementById('sidebarWallet').classList.add('show');
+  document.getElementById('sidebarAddr').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+  document.getElementById('sidebarVault').textContent = 'Vault: ' + vaultAddress.slice(0, 8) + '...' + vaultAddress.slice(-6);
+  document.getElementById('vaultLink').textContent = vaultAddress;
+  document.getElementById('vaultLink').href = EXPLORER + '/address/' + vaultAddress;
+  document.getElementById('explorerLink').href = EXPLORER + '/address/' + vaultAddress;
+  showPage('add-content');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ADD CONTENT WIZARD
+// ═══════════════════════════════════════════════════════════════
+
+function parseYouTube() {
+  const input = document.getElementById('ytInput').value.trim();
+  let id = '';
+
+  // Try various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const p of patterns) {
+    const m = input.match(p);
+    if (m) { id = m[1]; break; }
+  }
+
+  parsedYtId = id;
+  const preview = document.getElementById('thumbPreview');
+  if (id) {
+    preview.innerHTML = `<img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="Video thumbnail">`;
+    // Auto-generate resource ID if empty
+    const resInput = document.getElementById('resId');
+    if (!resInput.value) resInput.value = 'video-' + id.slice(0, 6).toLowerCase();
+  } else {
+    preview.innerHTML = '<div class="placeholder">Enter a YouTube URL above</div>';
+  }
+}
+
+function toggleLifetime() {
+  lifetimeAccess = !lifetimeAccess;
+  document.getElementById('lifetimeToggle').classList.toggle('on', lifetimeAccess);
+}
+
+function addStep(step) {
+  // Validate
+  if (step > 0 && !parsedYtId) { alert('Please enter a valid YouTube URL.'); return; }
+  if (step > 0 && !document.getElementById('resId').value.trim()) { alert('Resource ID is required.'); return; }
+  if (step > 1) {
+    const price = parseFloat(document.getElementById('priceInput').value);
+    if (!price || price <= 0) { alert('Price must be greater than 0.'); return; }
+  }
+
+  currentAddStep = step;
+
+  // Show/hide steps
+  for (let i = 0; i <= 2; i++) {
+    document.getElementById('addStep' + i).style.display = i === step ? 'block' : 'none';
+  }
+
+  // Update wizard bar
+  for (let i = 0; i <= 2; i++) {
+    const seg = document.getElementById('wiz' + i);
+    seg.className = 'wiz-seg';
+    if (i < step) seg.classList.add('done');
+    if (i === step) seg.classList.add('current');
+  }
+
+  // Populate review step
+  if (step === 2) {
+    document.getElementById('reviewThumb').innerHTML = `<img src="https://img.youtube.com/vi/${parsedYtId}/hqdefault.jpg" alt="">`;
+    document.getElementById('reviewResId').textContent = document.getElementById('resId').value;
+    document.getElementById('reviewPrice').textContent = document.getElementById('priceInput').value + ' APTM';
+    document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
+    document.getElementById('reviewYtId').textContent = parsedYtId;
+    document.getElementById('embedOutput').style.display = 'none';
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PUBLISH RESOURCE (on-chain)
+// ═══════════════════════════════════════════════════════════════
+
+async function publishResource() {
+  const btn = document.getElementById('publishBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Publishing...';
+  setStatus('publishStatus', 'pending', 'Confirm the transaction in your wallet...');
+
+  const resourceId = document.getElementById('resId').value.trim();
+  const price = toWei(document.getElementById('priceInput').value);
+  const contentType = 'video';
+  const contentRef = parsedYtId;
+
+  try {
+    // Encode addResource(string, uint256, bool, string, string)
+    const sel = selector('addResource(string,uint256,bool,string,string)');
+
+    // ABI encode with dynamic types
+    // Head: 5 slots (offsets for strings + static values)
+    // Slot 0: offset to resourceId string
+    // Slot 1: uint256 price
+    // Slot 2: bool lifetimeAccess
+    // Slot 3: offset to contentType string
+    // Slot 4: offset to contentRef string
+
+    const resIdBytes = new TextEncoder().encode(resourceId);
+    const typeBytes = new TextEncoder().encode(contentType);
+    const refBytes = new TextEncoder().encode(contentRef);
+
+    function encodeStrAt(s) {
+      const bytes = new TextEncoder().encode(s);
+      const lenHex = padUint(bytes.length);
+      let dataHex = '';
+      for (const b of bytes) dataHex += b.toString(16).padStart(2, '0');
+      return lenHex + dataHex.padEnd(Math.ceil(dataHex.length / 64) * 64, '0');
+    }
+
+    // Calculate offsets (in bytes from start of params)
+    // 5 head slots = 5 * 32 = 160 bytes offset for first string
+    const headSize = 5 * 32;
+    const resIdEncoded = encodeStrAt(resourceId);
+    const resIdSize = resIdEncoded.length / 2; // bytes
+    const typeEncoded = encodeStrAt(contentType);
+    const typeSize = typeEncoded.length / 2;
+    const refEncoded = encodeStrAt(contentRef);
+
+    const offset0 = headSize; // resourceId offset
+    const offset3 = offset0 + resIdSize; // contentType offset
+    const offset4 = offset3 + typeSize; // contentRef offset
+
+    const data = '0x' + sel +
+      padUint(offset0) +         // offset to resourceId
+      padUint(price) +           // price (static)
+      padBool(lifetimeAccess) +  // lifetime (static)
+      padUint(offset3) +         // offset to contentType
+      padUint(offset4) +         // offset to contentRef
+      resIdEncoded +
+      typeEncoded +
+      refEncoded;
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddress, to: vaultAddress, data }],
+    });
+
+    setStatus('publishStatus', 'pending', 'Transaction sent! Waiting for confirmation...');
+
+    // Poll for receipt
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    if (!receipt || receipt.status !== '0x1') throw new Error('Transaction reverted on-chain');
+
+    setStatus('publishStatus', 'success',
+      '✓ Published! <a href="' + EXPLORER + '/tx/' + txHash + '" target="_blank">View transaction</a>');
+
+    // Show embed codes
+    const embedEl = document.getElementById('embedOutput');
+    embedEl.style.display = 'block';
+
+    const hostedUrl = `${window.location.origin}/watch.html?vault=${vaultAddress}&resource=${resourceId}`;
+    document.getElementById('embedLink').textContent = hostedUrl;
+
+    document.getElementById('embedIframe').textContent =
+      `<iframe src="${hostedUrl}"\n  width="640" height="400" frameborder="0"\n  allow="ethereum *">\n</iframe>`;
+
+    document.getElementById('embedScript').textContent =
+      `<div class="a402-content"\n  data-vault="${vaultAddress}"\n  data-resource="${resourceId}">\n</div>\n<script src="https://cdn.a402.io/embed.js"><\/script>`;
+
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Published!';
+
+    // Update content count badge
+    loadContentCount();
+
+  } catch (err) {
+    setStatus('publishStatus', 'error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Publish On-Chain';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MY CONTENT (read from chain)
+// ═══════════════════════════════════════════════════════════════
+
+async function loadContentCount() {
+  try {
+    const sel = selector('resourceCount()');
+    const result = await ethCall(vaultAddress, '0x' + sel);
+    const count = Number(BigInt(result));
+    document.getElementById('contentCount').textContent = count;
+  } catch { /* ignore */ }
+}
+
+async function loadMyContent() {
+  const container = document.getElementById('contentList');
+  container.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">Loading from chain...</div>';
+
+  try {
+    const countSel = selector('resourceCount()');
+    const countResult = await ethCall(vaultAddress, '0x' + countSel);
+    const count = Number(BigInt(countResult));
+
+    document.getElementById('contentCount').textContent = count;
+
+    if (count === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No content yet. Go to "Add Content" to publish your first resource.</p></div>';
+      return;
+    }
+
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const resSel = selector('getResourceByIndex(uint256)');
+      const data = '0x' + resSel + padUint(i);
+      const result = await ethCall(vaultAddress, data);
+      items.push(decodeResourceByIndex(result));
+    }
+
+    let html = '<div class="res-list">';
+    for (const item of items) {
+      const priceAptm = fromWei(item.price);
+      const accessLabel = item.lifetime ? 'Lifetime' : 'Per-access';
+      const accessClass = item.lifetime ? 'lifetime' : 'per-access';
+      const statusLabel = item.active ? 'Active' : 'Paused';
+      const statusClass = item.active ? 'active' : 'paused';
+      const rev = fromWei(item.revenue);
+
+      html += `
+        <div class="res-item">
+          <div class="res-meta">
+            <div class="res-title-row">
+              <span class="res-id">${item.resourceId}</span>
+              <span class="res-badge video">${item.contentType}</span>
+              <span class="res-badge ${accessClass}">${accessLabel}</span>
+              <span class="res-badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="res-stats">
+              <span>Price: ${priceAptm} APTM</span>
+              <span>Payments: ${item.payments}</span>
+              <span>Revenue: ${rev} APTM</span>
+            </div>
+          </div>
+          <div class="res-actions">
+            <button class="btn btn-sm btn-secondary" onclick="copyEmbed('${item.resourceId}')">
+              <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Embed
+            </button>
+            ${item.active
+              ? `<button class="btn btn-sm btn-red" onclick="togglePause('${item.resourceId}', true)">Pause</button>`
+              : `<button class="btn btn-sm btn-green" onclick="togglePause('${item.resourceId}', false)">Unpause</button>`
+            }
+          </div>
+        </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+
+  } catch (err) {
+    container.innerHTML = `<div class="status-bar show error">Failed to load: ${err.message}</div>`;
+  }
+}
+
+function decodeResourceByIndex(hex) {
+  // Returns: (string resourceId, uint256 price, bool lifetime, bool active, string contentType, uint256 revenue, uint256 payments)
+  const d = hex.slice(2);
+  // Parse ABI-encoded response with dynamic strings
+  // Word 0: offset to resourceId string
+  // Word 1: price (uint256)
+  // Word 2: lifetimeAccess (bool)
+  // Word 3: active (bool)
+  // Word 4: offset to contentType string
+  // Word 5: revenue (uint256)
+  // Word 6: payments (uint256)
+  const price = BigInt('0x' + d.slice(64, 128)).toString();
+  const lifetime = BigInt('0x' + d.slice(128, 192)) === 1n;
+  const active = BigInt('0x' + d.slice(192, 256)) === 1n;
+  const revenue = BigInt('0x' + d.slice(320, 384)).toString();
+  const payments = Number(BigInt('0x' + d.slice(384, 448)));
+
+  // Decode resourceId string (offset at word 0)
+  const resIdOffset = Number(BigInt('0x' + d.slice(0, 64))) * 2;
+  const resIdLen = Number(BigInt('0x' + d.slice(resIdOffset, resIdOffset + 64)));
+  const resIdHex = d.slice(resIdOffset + 64, resIdOffset + 64 + resIdLen * 2);
+  const resourceId = hexToString(resIdHex);
+
+  // Decode contentType string (offset at word 4)
+  const typeOffset = Number(BigInt('0x' + d.slice(256, 320))) * 2;
+  const typeLen = Number(BigInt('0x' + d.slice(typeOffset, typeOffset + 64)));
+  const typeHex = d.slice(typeOffset + 64, typeOffset + 64 + typeLen * 2);
+  const contentType = hexToString(typeHex);
+
+  return { resourceId, price, lifetime, active, contentType, revenue, payments };
+}
+
+function hexToString(hex) {
+  let s = '';
+  for (let i = 0; i < hex.length; i += 2) {
+    s += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+  }
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  REVENUE
+// ═══════════════════════════════════════════════════════════════
+
+async function loadRevenue() {
+  try {
+    // getVaultStats() → (balance, totalRevenue, totalWithdrawn, resourceCount)
+    const sel = selector('getVaultStats()');
+    const result = await ethCall(vaultAddress, '0x' + sel);
+    const d = result.slice(2);
+
+    const balance = BigInt('0x' + d.slice(0, 64)).toString();
+    const totalRev = BigInt('0x' + d.slice(64, 128)).toString();
+    const totalWith = BigInt('0x' + d.slice(128, 192)).toString();
+    const resCount = Number(BigInt('0x' + d.slice(192, 256)));
+
+    document.getElementById('statBalance').innerHTML = fromWei(balance) + '<span class="unit">APTM</span>';
+    document.getElementById('statRevenue').innerHTML = fromWei(totalRev) + '<span class="unit">APTM</span>';
+    document.getElementById('statWithdrawn').innerHTML = fromWei(totalWith) + '<span class="unit">APTM</span>';
+    document.getElementById('statResources').textContent = resCount;
+
+    document.getElementById('withdrawBtn').disabled = BigInt(balance) === 0n;
+
+    // Load per-resource breakdown
+    const breakdown = document.getElementById('revenueBreakdown');
+    if (resCount === 0) {
+      breakdown.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">No resources yet.</div>';
+      return;
+    }
+
+    let html = '<div class="res-list">';
+    for (let i = 0; i < resCount; i++) {
+      const resSel = selector('getResourceByIndex(uint256)');
+      const data = '0x' + resSel + padUint(i);
+      const res = await ethCall(vaultAddress, data);
+      const item = decodeResourceByIndex(res);
+
+      html += `
+        <div class="res-item" style="grid-template-columns: 1fr auto auto;">
+          <div class="res-meta">
+            <div class="res-title-row">
+              <span class="res-id">${item.resourceId}</span>
+              <span class="res-badge video">${item.contentType}</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-bright);">${fromWei(item.revenue)} APTM</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">revenue</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-bright);">${item.payments}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">payments</div>
+          </div>
+        </div>`;
+    }
+    html += '</div>';
+    breakdown.innerHTML = html;
+
+  } catch (err) {
+    document.getElementById('revenueBreakdown').innerHTML = `<div class="status-bar show error">${err.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WITHDRAW
+// ═══════════════════════════════════════════════════════════════
+
+async function withdrawAll() {
+  const btn = document.getElementById('withdrawBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Withdrawing...';
+  setStatus('withdrawStatus', 'pending', 'Confirm the transaction in your wallet...');
+
+  try {
+    const sel = selector('withdraw()');
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddress, to: vaultAddress, data: '0x' + sel }],
+    });
+
+    setStatus('withdrawStatus', 'pending', 'Transaction sent...');
+
+    let receipt = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    if (!receipt || receipt.status !== '0x1') throw new Error('Transaction reverted');
+
+    setStatus('withdrawStatus', 'success',
+      '✓ Withdrawn! <a href="' + EXPLORER + '/tx/' + txHash + '" target="_blank">View transaction</a>');
+
+    // Refresh stats
+    await loadRevenue();
+
+  } catch (err) {
+    setStatus('withdrawStatus', 'error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Withdraw All';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PAUSE/UNPAUSE
+// ═══════════════════════════════════════════════════════════════
+
+async function togglePause(resourceId, shouldPause) {
+  const fn = shouldPause ? 'pauseResource(string)' : 'unpauseResource(string)';
+  const sel = selector(fn);
+
+  // Encode: selector + offset(32) + string(len + data)
+  const encoded = '0x' + sel + padUint(32) + encodeString(resourceId);
+
+  try {
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddress, to: vaultAddress, data: encoded }],
+    });
+
+    // Wait for confirmation
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    // Reload content list
+    loadMyContent();
+  } catch (err) {
+    if (err.code !== 4001) alert('Failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  EMBED COPY
+// ═══════════════════════════════════════════════════════════════
+
+function copyEmbed(resourceId) {
+  const url = `${window.location.origin}/watch.html?vault=${vaultAddress}&resource=${resourceId}`;
+  navigator.clipboard.writeText(url);
+  alert('Viewer link copied!\n\n' + url);
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status-bar show ' + type;
+  el.innerHTML = msg;
+}
+
+// ─── Wallet events ───
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length === 0) window.location.reload();
+    else if (accounts[0].toLowerCase() !== userAddress?.toLowerCase()) window.location.reload();
+  });
+  window.ethereum.on('chainChanged', () => window.location.reload());
+}
+</script>
+</body>
+</html>
