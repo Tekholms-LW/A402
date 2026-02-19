@@ -1,17 +1,16 @@
 /**
- * Apertum A402 Prototype Server — Lifetime Access Edition
+ * Apertum A402 Prototype Server — Dual-Mode Video Edition
  *
- * Contract: A402Verifier (v2) with lifetime access support
+ * Supports YouTube videos, IPFS-hosted videos, and direct video URLs.
+ * Contract: A402Verifier (v2) with lifetime access support.
  *
- * New flow:
+ * Flow:
  *   1. Client connects wallet → sends address to /api/check-access
  *   2. Server calls hasAccess(resourceId, user) on-chain via eth_call (free)
  *   3. If user already has access → skip payment, serve content immediately
  *   4. If not → standard 402 flow: pay via payForAccess(), verify, unlock
  *
- * The contract stores lifetime grants in an on-chain mapping so access
- * survives server restarts, works across any frontend, and is independently
- * verifiable by anyone.
+ * Video source priority: VIDEO_URL env var > YOUTUBE_VIDEO_ID env var
  */
 
 const express = require('express');
@@ -27,12 +26,6 @@ app.use(express.json());
 // ─── Contract ────────────────────────────────────────────────────
 const VERIFIER_CONTRACT = process.env.VERIFIER_CONTRACT || '0x461dA8e28B276586EB9dC4F010EbfF7F126A7076';
 
-// Event topic: keccak256("AccessPaid(address,address,string,uint256,bool,uint256)")
-// We'll match by contract address + log structure (topic count) since the
-// event signature changes with the v2 contract. For the original contract,
-// we fall back to matching VideoAccessPaid.
-// In production, precompute the exact topic hash after deploying v2.
-
 // ─── Configuration ────────────────────────────────────────────────
 const CONFIG = {
   chainId: 2786,
@@ -42,11 +35,14 @@ const CONFIG = {
   creatorAddress: process.env.PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000',
   price: process.env.PRICE || '0.001',
   resourceId: process.env.RESOURCE_ID || 'video-001',
-  youtubeVideoId: process.env.YOUTUBE_VIDEO_ID || 'dQw4w9WgXcQ',
+  youtubeVideoId: process.env.YOUTUBE_VIDEO_ID || '',
+  videoUrl: process.env.VIDEO_URL || '',
   lifetimeAccess: (process.env.LIFETIME_ACCESS || 'true').toLowerCase() === 'true',
   currency: 'APTM',
   decimals: 18,
 };
+
+const IPFS_GATEWAY = process.env.IPFS_GATEWAY || 'https://ipfs.io';
 
 function toWei(aptm) {
   const parts = aptm.split('.');
@@ -57,7 +53,60 @@ function toWei(aptm) {
 
 const priceWei = toWei(CONFIG.price);
 
-// ─── In-memory payment ledger (supplements on-chain state) ───────
+// ─── Content source detection ─────────────────────────────────────
+function detectContentSource(ref) {
+  if (!ref) return { type: 'unknown', videoUrl: null };
+  const trimmed = ref.trim();
+
+  if (trimmed.startsWith('ipfs://')) {
+    const cid = trimmed.replace('ipfs://', '');
+    return { type: 'ipfs', videoUrl: `${IPFS_GATEWAY}/ipfs/${cid}` };
+  }
+  if (trimmed.includes('/ipfs/') || trimmed.includes('/ipns/')) {
+    return { type: 'ipfs', videoUrl: trimmed };
+  }
+  if (/\.(mp4|webm|ogg|mov|m3u8)(\?.*)?$/i.test(trimmed) && trimmed.startsWith('http')) {
+    return { type: 'direct', videoUrl: trimmed };
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    const ytMatch = trimmed.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return { type: 'youtube', videoUrl: `https://www.youtube.com/embed/${ytMatch[1]}`, videoId: ytMatch[1] };
+    return { type: 'direct', videoUrl: trimmed };
+  }
+  if (/^(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})$/.test(trimmed)) {
+    return { type: 'ipfs', videoUrl: `${IPFS_GATEWAY}/ipfs/${trimmed}` };
+  }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return { type: 'youtube', videoUrl: `https://www.youtube.com/embed/${trimmed}`, videoId: trimmed };
+  }
+  return { type: 'unknown', videoUrl: null };
+}
+
+/**
+ * Resolve the configured content ref to a response payload.
+ * Returns { videoId?, videoUrl, contentType }
+ * Backward compatible: still includes videoId for YouTube sources.
+ */
+function resolveContentPayload() {
+  const ref = CONFIG.videoUrl || CONFIG.youtubeVideoId || 'dQw4w9WgXcQ';
+  const source = detectContentSource(ref);
+
+  if (source.type === 'youtube') {
+    const ytId = source.videoId || ref;
+    return {
+      videoId: ytId,
+      videoUrl: `https://www.youtube.com/embed/${ytId}`,
+      contentType: 'youtube',
+    };
+  }
+
+  return {
+    videoUrl: source.videoUrl,
+    contentType: source.type,
+  };
+}
+
+// ─── In-memory payment ledger ─────────────────────────────────────
 const payments = new Map();
 
 // ─── Static files ─────────────────────────────────────────────────
@@ -91,32 +140,17 @@ function encodeString(str) {
   return len + padded;
 }
 
-/**
- * Encode hasAccess(string resourceId, address user) for eth_call.
- *
- * Function selector: keccak256("hasAccess(string,address)") first 4 bytes
- * We precompute this. The server uses js-sha3 (installed as dev dep) or
- * we hardcode it after computing once.
- *
- * ABI layout for (string, address):
- *   Word 0: offset to string data (0x40 = 64, past the 2 head words)
- *   Word 1: address (left-padded to 32 bytes)
- *   Word 2: string length
- *   Word 3+: string data (right-padded)
- */
 let HAS_ACCESS_SELECTOR;
 try {
   const { keccak256 } = require('js-sha3');
   HAS_ACCESS_SELECTOR = '0x' + keccak256('hasAccess(string,address)').slice(0, 8);
 } catch {
-  // Precomputed fallback (keccak256 of "hasAccess(string,address)")
-  // Compute this once and hardcode if js-sha3 isn't available
-  HAS_ACCESS_SELECTOR = '0x13bd20e2'; // keccak256("hasAccess(string,address)") first 4 bytes
+  HAS_ACCESS_SELECTOR = '0x13bd20e2';
 }
 
 function encodeHasAccess(resourceId, userAddress) {
   const sel = HAS_ACCESS_SELECTOR.slice(2);
-  const strOffset = padUint256(64); // 0x40 — offset past 2 head words
+  const strOffset = padUint256(64);
   const addr = padAddress(userAddress);
   const strEncoded = encodeString(resourceId);
   return '0x' + sel + strOffset + addr + strEncoded;
@@ -131,15 +165,12 @@ async function checkOnChainAccess(resourceId, userAddress) {
       data: calldata,
     }, 'latest']);
 
-    // Result is ABI-encoded bool (32 bytes, 0x...0001 = true)
     if (result && result !== '0x' && result !== '0x0') {
-      const value = BigInt(result);
-      return value === 1n;
+      return BigInt(result) === 1n;
     }
     return false;
   } catch (err) {
-    // If the contract doesn't have hasAccess() (v1), this will revert — that's fine
-    console.log('On-chain access check unavailable (v1 contract or RPC error):', err.message);
+    console.log('On-chain access check unavailable:', err.message);
     return false;
   }
 }
@@ -147,12 +178,14 @@ async function checkOnChainAccess(resourceId, userAddress) {
 // ─── Endpoints ────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
+  const content = resolveContentPayload();
   res.json({
     status: 'ok',
     chain: CONFIG.caip2,
     verifierContract: CONFIG.verifierContract,
     creatorAddress: CONFIG.creatorAddress,
     lifetimeAccess: CONFIG.lifetimeAccess,
+    contentType: content.contentType,
   });
 });
 
@@ -180,29 +213,26 @@ app.get('/api/nonce', (req, res) => {
   res.json({ nonce });
 });
 
-// ─── Check Access (the new key endpoint) ──────────────────────────
-// Client sends their wallet address, server checks on-chain if they
-// already have lifetime access. Zero gas — it's a view function call.
+// ─── Check Access ─────────────────────────────────────────────────
 app.get('/api/check-access', async (req, res) => {
   const userAddress = req.query.address;
   if (!userAddress) {
     return res.status(400).json({ error: 'address query parameter is required' });
   }
 
-  // 1. Check in-memory ledger first (fast path for current session)
+  // 1. Check in-memory ledger first
   for (const [, payment] of payments) {
     if (payment.verified && payment.payer?.toLowerCase() === userAddress.toLowerCase()) {
       return res.json({
         hasAccess: true,
         source: 'session',
         message: 'Access granted (verified this session)',
-        videoId: CONFIG.youtubeVideoId,
-        videoUrl: `https://www.youtube.com/embed/${CONFIG.youtubeVideoId}`,
+        ...resolveContentPayload(),
       });
     }
   }
 
-  // 2. Check on-chain (lifetime access mapping in the contract)
+  // 2. Check on-chain
   if (CONFIG.lifetimeAccess) {
     const onChain = await checkOnChainAccess(CONFIG.resourceId, userAddress);
     if (onChain) {
@@ -212,8 +242,7 @@ app.get('/api/check-access', async (req, res) => {
         source: 'on-chain',
         lifetime: true,
         message: 'Lifetime access confirmed — you already paid for this content!',
-        videoId: CONFIG.youtubeVideoId,
-        videoUrl: `https://www.youtube.com/embed/${CONFIG.youtubeVideoId}`,
+        ...resolveContentPayload(),
       });
     }
   }
@@ -259,8 +288,7 @@ app.get('/api/video', (req, res) => {
     return res.json({
       status: 200,
       message: 'Payment verified!',
-      videoId: CONFIG.youtubeVideoId,
-      videoUrl: `https://www.youtube.com/embed/${CONFIG.youtubeVideoId}`,
+      ...resolveContentPayload(),
     });
   }
 
@@ -278,8 +306,7 @@ app.post('/api/verify', async (req, res) => {
     return res.json({
       verified: true,
       message: 'Payment already verified',
-      videoId: CONFIG.youtubeVideoId,
-      videoUrl: `https://www.youtube.com/embed/${CONFIG.youtubeVideoId}`,
+      ...resolveContentPayload(),
     });
   }
 
@@ -304,7 +331,6 @@ app.post('/api/verify', async (req, res) => {
       });
     }
 
-    // Parse event logs from the contract
     const contractLogs = (receipt.logs || []).filter(
       log => log.address?.toLowerCase() === CONFIG.verifierContract.toLowerCase()
     );
@@ -316,10 +342,6 @@ app.post('/api/verify', async (req, res) => {
       });
     }
 
-    // Find a payment event with matching creator and sufficient amount
-    // Works with both v1 (VideoAccessPaid) and v2 (AccessPaid) events:
-    // Both have indexed payer at topics[1] and indexed creator at topics[2]
-    // Both have amount in the data section
     let verifiedLog = null;
 
     for (const log of contractLogs) {
@@ -329,17 +351,12 @@ app.post('/api/verify', async (req, res) => {
       if (logCreator.toLowerCase() !== CONFIG.creatorAddress.toLowerCase()) continue;
 
       const data = log.data.slice(2);
-      if (data.length < 128) continue; // need at least 2 words
+      if (data.length < 128) continue;
 
-      // Amount is in the data — position depends on event version:
-      // v1 VideoAccessPaid: data = (string_offset, amount, timestamp) → amount at word 1
-      // v2 AccessPaid: data = (string_offset, amount, bool, timestamp) → amount at word 1
-      // Both have amount at word 1 (hex chars 64..128)
       const logAmount = BigInt('0x' + data.slice(64, 128));
       if (logAmount < BigInt(priceWei)) continue;
 
       const logPayer = '0x' + log.topics[1].slice(-40);
-
       verifiedLog = { payer: logPayer, creator: logCreator, amount: logAmount.toString() };
       break;
     }
@@ -369,8 +386,7 @@ app.post('/api/verify', async (req, res) => {
         ? 'Payment verified! You now have lifetime access to this content.'
         : 'Payment verified! Content unlocked.',
       payer: verifiedLog.payer,
-      videoId: CONFIG.youtubeVideoId,
-      videoUrl: `https://www.youtube.com/embed/${CONFIG.youtubeVideoId}`,
+      ...resolveContentPayload(),
     });
 
   } catch (err) {
@@ -383,9 +399,14 @@ app.post('/api/verify', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   const mode = CONFIG.lifetimeAccess ? 'LIFETIME' : 'PER-ACCESS';
+  const content = resolveContentPayload();
+  const sourceLabel = content.contentType === 'youtube'
+    ? `YouTube: ${content.videoId}`
+    : `${content.contentType.toUpperCase()}: ${(content.videoUrl || '').slice(0, 40)}...`;
+
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
-║   🔷 Apertum A402 — Lifetime Access Edition                  ║
+║   🔷 Apertum A402 — Dual-Mode Video Edition                  ║
 ║                                                               ║
 ║   Server:     http://localhost:${PORT}                          ║
 ║   Chain:      Apertum (eip155:2786)                           ║
@@ -394,7 +415,7 @@ app.listen(PORT, () => {
 ║   Price:      ${CONFIG.price} APTM + gas                           ║
 ║   Mode:       ${mode.padEnd(10)}                                    ║
 ║   Resource:   ${CONFIG.resourceId}                                      ║
-║   Video:      ${CONFIG.youtubeVideoId}                             ║
+║   Source:     ${sourceLabel.slice(0, 44).padEnd(44)}   ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 });
