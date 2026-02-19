@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apertum x402 · Pay-to-Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-deep: #06080d;
+      --bg-card: #0c1018;
+      --bg-surface: #111827;
+      --border: #1e293b;
+      --border-glow: #3b82f620;
+      --text: #e2e8f0;
+      --text-dim: #64748b;
+      --text-bright: #f8fafc;
+      --accent: #3b82f6;
+      --accent-bright: #60a5fa;
+      --accent-glow: #3b82f640;
+      --success: #10b981;
+      --success-glow: #10b98130;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      --gradient-2: linear-gradient(135deg, #06b6d4, #3b82f6);
+      --font-mono: 'Space Mono', monospace;
+      --font-body: 'Outfit', sans-serif;
+    }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background effects ─── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.15;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 100%);
+    }
+    .bg-glow { position: fixed; z-index: 0; width: 600px; height: 600px; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; }
+    .bg-glow.g1 { top: -200px; left: -100px; background: #3b82f6; }
+    .bg-glow.g2 { bottom: -200px; right: -100px; background: #8b5cf6; }
+
+    /* ─── Layout ─── */
+    .container { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ─── Header ─── */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 36px; height: 36px; background: var(--gradient-1); border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: 16px; color: white; font-family: var(--font-mono); }
+    .logo-text { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+    .logo-text span { color: var(--text-dim); font-weight: 400; }
+    .chain-badge { font-family: var(--font-mono); font-size: 11px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); color: var(--text-dim); background: var(--bg-card); display: flex; align-items: center; gap: 6px; }
+    .chain-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ─── Progress steps ─── */
+    .steps { display: flex; gap: 4px; margin-bottom: 24px; }
+    .step-bar { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.4s; }
+    .step-bar.active { background: var(--accent); }
+    .step-bar.done { background: var(--success); }
+
+    /* ─── Card ─── */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color 0.3s; }
+
+    /* ─── Video area ─── */
+    .video-area { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+    .video-area iframe { width: 100%; height: 100%; border: none; }
+
+    .lock-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(6,8,13,0.6) 0%, rgba(6,8,13,0.95) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      transition: opacity 0.5s, visibility 0.5s;
+      backdrop-filter: blur(8px);
+    }
+    .lock-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .lock-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      display: grid; place-items: center;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .lock-icon svg { width: 28px; height: 28px; stroke: var(--accent-bright); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .lock-text { font-size: 15px; color: var(--text-dim); text-align: center; line-height: 1.5; }
+    .lock-text strong { color: var(--text-bright); font-weight: 600; }
+
+    /* ─── Card body ─── */
+    .card-body { padding: 28px; }
+    .card-title { font-size: 22px; font-weight: 600; color: var(--text-bright); margin-bottom: 8px; }
+    .card-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 24px; }
+
+    /* ─── Price row ─── */
+    .price-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.1); border-radius: 12px; margin-bottom: 6px; }
+    .price-label { font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; }
+    .price-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--text-bright); }
+    .price-value .currency { font-size: 13px; font-weight: 400; color: var(--accent-bright); margin-left: 4px; }
+    .gas-row { background: rgba(255,255,255,0.02); border-color: var(--border); border-radius: 8px; padding: 12px 20px; }
+    .gas-row .price-label { font-size: 11px; }
+    .gas-value { font-size: 14px !important; font-weight: 400 !important; color: var(--text-dim) !important; }
+    .gas-value .currency { color: var(--text-dim) !important; }
+    .total-row { background: rgba(16,185,129,0.04); border-color: rgba(16,185,129,0.12); border-radius: 8px 8px 12px 12px; padding: 14px 20px; }
+    .total-row .price-label { color: var(--success); }
+    .total-row .price-value { color: var(--text-bright); }
+
+    /* ─── Contract info ─── */
+    .contract-info {
+      padding: 14px 18px; border-radius: 10px; margin-bottom: 20px;
+      background: rgba(139, 92, 246, 0.04); border: 1px solid rgba(139, 92, 246, 0.1);
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .contract-info .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .contract-info .label { color: var(--text-dim); white-space: nowrap; }
+    .contract-info .value { color: var(--text); text-align: right; word-break: break-all; }
+    .contract-info .value a { color: var(--accent-bright); text-decoration: none; }
+    .contract-info .value a:hover { text-decoration: underline; }
+
+    /* ─── Chips ─── */
+    .detail-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .chip { font-family: var(--font-mono); font-size: 11px; padding: 5px 10px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .chip strong { color: var(--text); font-weight: 600; }
+    .chip.contract-chip { border-color: rgba(139,92,246,0.2); background: rgba(139,92,246,0.04); }
+    .chip.contract-chip strong { color: #a78bfa; }
+    .chip.lifetime-chip { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.06); }
+    .chip.lifetime-chip strong { color: var(--success); }
+
+    /* ─── Button ─── */
+    .btn { width: 100%; padding: 16px 24px; border: none; border-radius: 12px; font-family: var(--font-body); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-primary { background: var(--gradient-1); color: white; box-shadow: 0 4px 24px var(--accent-glow); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 32px var(--accent-glow); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-success { background: var(--success); color: white; box-shadow: 0 4px 24px var(--success-glow); }
+    .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ─── Status messages ─── */
+    .status { margin-top: 16px; padding: 14px 18px; border-radius: 10px; font-size: 13px; font-family: var(--font-mono); line-height: 1.5; display: none; }
+    .status.show { display: block; animation: fadeUp 0.3s ease; }
+    .status.info { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.15); color: var(--accent-bright); }
+    .status.success { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); color: var(--success); }
+    .status.error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); color: var(--error); }
+    .status.pending { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.15); color: var(--warning); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Wallet bar ─── */
+    .wallet-bar { display: none; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 20px; border-radius: 10px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.12); font-family: var(--font-mono); font-size: 12px; }
+    .wallet-bar.show { display: flex; animation: fadeUp 0.3s ease; }
+    .wallet-bar .addr { color: var(--success); }
+    .wallet-bar .network { color: var(--text-dim); }
+
+    /* ─── Tx link ─── */
+    .tx-link { display: none; margin-top: 12px; font-family: var(--font-mono); font-size: 12px; }
+    .tx-link.show { display: block; animation: fadeUp 0.3s ease; }
+    .tx-link a { color: var(--accent-bright); text-decoration: none; word-break: break-all; }
+    .tx-link a:hover { text-decoration: underline; }
+
+    /* ─── Spinner ─── */
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Footer ─── */
+    .footer { text-align: center; margin-top: 48px; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 520px) {
+      .container { padding: 24px 16px 60px; }
+      .header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .card-body { padding: 20px; }
+      .card-title { font-size: 19px; }
+      .price-value { font-size: 18px; }
+      .contract-info .row { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow g1"></div>
+  <div class="bg-glow g2"></div>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon">A</div>
+        <div class="logo-text">apertum<span>/x402</span></div>
+      </div>
+      <div class="chain-badge"><div class="dot"></div>eip155:2786</div>
+    </div>
+
+    <div class="steps">
+      <div class="step-bar" id="step1"></div>
+      <div class="step-bar" id="step2"></div>
+      <div class="step-bar" id="step3"></div>
+    </div>
+
+    <div class="card">
+      <div class="video-area" id="videoArea">
+        <div class="lock-overlay" id="lockOverlay">
+          <div class="lock-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="lock-text">
+            <strong>This video is locked</strong><br>
+            Pay via A402Verifier contract to unlock
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <h1 class="card-title">Exclusive Unlisted Video</h1>
+        <p class="card-desc">
+          Payment goes through the <strong>A402Verifier</strong> smart contract on Apertum.
+          The contract enforces exact payment, prevents replay via nonces,
+          and forwards funds to the creator. When lifetime access is enabled,
+          your payment is recorded on-chain — <strong>come back anytime, no second payment needed.</strong>
+        </p>
+
+        <div class="price-row">
+          <span class="price-label">Content</span>
+          <span class="price-value" id="priceDisplay">0.001<span class="currency">APTM</span></span>
+        </div>
+
+        <div class="price-row gas-row" id="gasRow" style="display:none;">
+          <span class="price-label">Est. Gas</span>
+          <span class="price-value gas-value" id="gasDisplay">—<span class="currency">APTM</span></span>
+        </div>
+
+        <div class="price-row total-row" id="totalRow" style="display:none; margin-bottom: 16px;">
+          <span class="price-label">Est. Total</span>
+          <span class="price-value" id="totalDisplay">—<span class="currency">APTM</span></span>
+        </div>
+
+        <div class="contract-info" id="contractInfo">
+          <div class="row">
+            <span class="label">Contract</span>
+            <span class="value"><a id="contractLink" href="#" target="_blank">Loading...</a></span>
+          </div>
+          <div class="row">
+            <span class="label">Function</span>
+            <span class="value">payForAccess(string, address, uint256, bytes32)</span>
+          </div>
+          <div class="row">
+            <span class="label">Resource</span>
+            <span class="value" id="resourceDisplay">—</span>
+          </div>
+        </div>
+
+        <div class="detail-chips">
+          <div class="chip"><strong>Protocol</strong> HTTP 402</div>
+          <div class="chip contract-chip"><strong>Verified</strong> On-Chain</div>
+          <div class="chip"><strong>Finality</strong> ~1s</div>
+          <div class="chip"><strong>Nonce</strong> Replay-Safe</div>
+          <div class="chip lifetime-chip" id="lifetimeBadge" style="display:none;"><strong>♾ Lifetime</strong> Pay Once</div>
+        </div>
+
+        <div class="wallet-bar" id="walletBar">
+          <span class="addr" id="walletAddr"></span>
+          <span class="network" id="walletNetwork"></span>
+        </div>
+
+        <button class="btn btn-primary" id="actionBtn" onclick="handleAction()">
+          <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
+          Connect Wallet
+        </button>
+
+        <div class="status" id="statusMsg"></div>
+        <div class="tx-link" id="txLink"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Built on <a href="https://apertum.io" target="_blank">Apertum</a> ·
+      <a href="https://github.com/coinbase/x402" target="_blank">x402 Standard</a> ·
+      <a id="contractFooterLink" href="#" target="_blank">View Contract</a>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  ABI ENCODING HELPERS — Pure JS, no dependencies
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Encode a call to: payForAccess(string resourceId, address creator, uint256 amount, bytes32 nonce)
+ * Function selector: 0xd5be11ca (keccak256 of signature, first 4 bytes)
+ *
+ * ABI layout for mixed dynamic + static types:
+ *   Word 0: offset to string data (dynamic) → points past the 4 static-slot "head"
+ *   Word 1: address creator (static, zero-padded left to 32 bytes)
+ *   Word 2: uint256 amount (static)
+ *   Word 3: bytes32 nonce (static)
+ *   Word 4: string length
+ *   Word 5+: string data (padded to 32 bytes)
+ */
+function encodePayForAccess(resourceId, creator, amountWei, nonce) {
+  const selector = 'd5be11ca';
+
+  // Encode string to UTF-8 bytes
+  const encoder = new TextEncoder();
+  const strBytes = encoder.encode(resourceId);
+  const strLen = strBytes.length;
+  // Pad string data to multiple of 32
+  const strPaddedLen = Math.ceil(strLen / 32) * 32;
+
+  // Head section: 4 words (offset, address, uint256, bytes32)
+  // offset to string = 4 * 32 = 128 = 0x80
+  const offset = padLeft(BigInt(128).toString(16), 64);
+
+  // address: strip 0x, lowercase, left-pad to 64 hex chars
+  const addrHex = padLeft(creator.replace('0x', '').toLowerCase(), 64);
+
+  // uint256 amount
+  const amountHex = padLeft(BigInt(amountWei).toString(16), 64);
+
+  // bytes32 nonce (already 0x + 64 hex chars)
+  const nonceHex = nonce.replace('0x', '');
+
+  // String encoding: length word + data words
+  const strLenHex = padLeft(BigInt(strLen).toString(16), 64);
+  let strDataHex = '';
+  for (let i = 0; i < strBytes.length; i++) {
+    strDataHex += strBytes[i].toString(16).padStart(2, '0');
+  }
+  // Pad to 32-byte boundary
+  strDataHex = strDataHex.padEnd(strPaddedLen * 2, '0');
+
+  return '0x' + selector + offset + addrHex + amountHex + nonceHex + strLenHex + strDataHex;
+}
+
+function padLeft(hex, length) {
+  return hex.padStart(length, '0');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  APP STATE & DOM
+// ═══════════════════════════════════════════════════════════════════
+
+let state = 'disconnected'; // disconnected → connected → paying → verifying → unlocked
+let userAddress = null;
+let paymentInfo = null;
+
+const actionBtn = document.getElementById('actionBtn');
+const statusMsg = document.getElementById('statusMsg');
+const walletBar = document.getElementById('walletBar');
+const lockOverlay = document.getElementById('lockOverlay');
+const videoArea = document.getElementById('videoArea');
+const txLink = document.getElementById('txLink');
+
+// ─── Load payment info from server ───────────────────────────────
+async function loadPaymentInfo() {
+  try {
+    const res = await fetch('/api/payment-info');
+    paymentInfo = await res.json();
+    document.getElementById('priceDisplay').innerHTML =
+      `${paymentInfo.price}<span class="currency">${paymentInfo.currency}</span>`;
+    document.getElementById('resourceDisplay').textContent = paymentInfo.resourceId;
+
+    const short = paymentInfo.verifierContract.slice(0, 8) + '...' + paymentInfo.verifierContract.slice(-6);
+    const explorerUrl = `https://explorer.apertum.io/address/${paymentInfo.verifierContract}`;
+    document.getElementById('contractLink').textContent = short;
+    document.getElementById('contractLink').href = explorerUrl;
+    document.getElementById('contractFooterLink').href = explorerUrl;
+
+    // Show lifetime badge if enabled
+    if (paymentInfo.lifetimeAccess) {
+      document.getElementById('lifetimeBadge').style.display = 'inline-flex';
+    }
+  } catch (e) {
+    showStatus('error', 'Failed to load payment info from server');
+  }
+}
+loadPaymentInfo();
+
+// ─── Check existing access (on-chain lifetime grant) ─────────────
+async function checkExistingAccess(address) {
+  try {
+    const res = await fetch(`/api/check-access?address=${address}`);
+    const data = await res.json();
+    return data;
+  } catch {
+    return { hasAccess: false };
+  }
+}
+
+// ─── Step indicator ──────────────────────────────────────────────
+function updateSteps() {
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const s3 = document.getElementById('step3');
+  s1.className = s2.className = s3.className = 'step-bar';
+  if (state === 'disconnected') { s1.classList.add('active'); }
+  if (state === 'connected') { s1.classList.add('done'); s2.classList.add('active'); }
+  if (state === 'paying' || state === 'verifying') { s1.classList.add('done'); s2.classList.add('done'); s3.classList.add('active'); }
+  if (state === 'unlocked') { s1.classList.add('done'); s2.classList.add('done'); s3.classList.add('done'); }
+}
+updateSteps();
+
+function showStatus(type, msg) {
+  statusMsg.className = `status show ${type}`;
+  statusMsg.textContent = msg;
+}
+function hideStatus() { statusMsg.className = 'status'; }
+
+// ─── Main action ─────────────────────────────────────────────────
+async function handleAction() {
+  if (state === 'disconnected') return connectWallet();
+  if (state === 'connected') return sendContractPayment();
+}
+
+// ─── Connect Wallet ──────────────────────────────────────────────
+async function connectWallet() {
+  if (!window.ethereum) {
+    showStatus('error', 'No wallet detected. Install MetaMask or another EVM wallet.');
+    return;
+  }
+
+  try {
+    actionBtn.disabled = true;
+    actionBtn.innerHTML = '<div class="spinner"></div> Connecting...';
+
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAddress = accounts[0];
+
+    // Switch to Apertum
+    const apertumHex = '0x' + (2786).toString(16);
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+    if (chainId !== apertumHex) {
+      try {
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: apertumHex }] });
+      } catch (switchErr) {
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: apertumHex,
+              chainName: 'Apertum',
+              nativeCurrency: { name: 'APTM', symbol: 'APTM', decimals: 18 },
+              rpcUrls: [paymentInfo?.rpcUrl || 'https://rpc.apertum.io/ext/bc/YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9zGBq3uQjsCnn/rpc'],
+              blockExplorerUrls: ['https://explorer.apertum.io'],
+            }],
+          });
+        } else { throw switchErr; }
+      }
+    }
+
+    state = 'connected';
+    updateSteps();
+    walletBar.classList.add('show');
+    document.getElementById('walletAddr').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+    document.getElementById('walletNetwork').textContent = 'Apertum (2786)';
+
+    // ── Check if user already has lifetime access ──
+    actionBtn.disabled = true;
+    actionBtn.innerHTML = '<div class="spinner"></div> Checking access...';
+    showStatus('info', 'Checking if you already have access to this content...');
+
+    const accessCheck = await checkExistingAccess(userAddress);
+
+    if (accessCheck.hasAccess) {
+      // User already paid — skip straight to unlock!
+      const label = accessCheck.lifetime
+        ? '♻️ Lifetime access confirmed on-chain — no payment needed!'
+        : '✓ Access confirmed from current session.';
+      showStatus('success', label);
+      unlockVideo(accessCheck.videoId);
+      return;
+    }
+
+    // ── No existing access — show payment flow ──
+    // Estimate gas for the contract call
+    let estimatedTotalAptm = paymentInfo?.price || '0.001';
+    try {
+      const dummyNonce = '0x' + '00'.repeat(32);
+      const estimateData = encodePayForAccess(
+        paymentInfo.resourceId,
+        paymentInfo.creatorAddress,
+        paymentInfo.priceWei,
+        dummyNonce
+      );
+
+      const gasEstimate = await window.ethereum.request({
+        method: 'eth_estimateGas',
+        params: [{
+          from: userAddress,
+          to: paymentInfo.verifierContract,
+          data: estimateData,
+          value: '0x' + BigInt(paymentInfo.priceWei).toString(16),
+        }],
+      });
+
+      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
+      const gasUnits = BigInt(gasEstimate);
+      const gasPriceWei = BigInt(gasPrice);
+      const gasCostWei = gasUnits * gasPriceWei;
+      const contentWei = BigInt(paymentInfo.priceWei);
+      const totalWei = contentWei + gasCostWei;
+      const gasAptm = Number(gasCostWei) / 1e18;
+      const totalAptm = Number(totalWei) / 1e18;
+      estimatedTotalAptm = totalAptm.toFixed(4);
+
+      document.getElementById('gasRow').style.display = 'flex';
+      document.getElementById('gasDisplay').innerHTML =
+        `~${gasAptm.toFixed(4)}<span class="currency">APTM</span>`;
+      document.getElementById('totalRow').style.display = 'flex';
+      document.getElementById('totalDisplay').innerHTML =
+        `~${estimatedTotalAptm}<span class="currency">APTM</span>`;
+    } catch (gasErr) {
+      console.warn('Gas estimation failed:', gasErr.message);
+      document.getElementById('gasRow').style.display = 'flex';
+      document.getElementById('gasDisplay').innerHTML =
+        `<span class="currency" style="font-size:11px">+ network gas fee</span>`;
+    }
+
+    const lifetimeLabel = paymentInfo?.lifetimeAccess ? ' · Lifetime Access' : '';
+    actionBtn.disabled = false;
+    actionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Pay ~${estimatedTotalAptm} APTM${lifetimeLabel}
+    `;
+    hideStatus();
+    const statusLabel = paymentInfo?.lifetimeAccess
+      ? 'No existing access found. Pay once to unlock this content forever.'
+      : 'Wallet connected. Click to pay and unlock.';
+    showStatus('info', statusLabel);
+
+  } catch (err) {
+    console.error(err);
+    showStatus('error', 'Connection failed: ' + (err.message || err));
+    actionBtn.disabled = false;
+    actionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
+      Connect Wallet
+    `;
+  }
+}
+
+// ─── Send Payment via A402Verifier Contract ──────────────────────
+async function sendContractPayment() {
+  if (!paymentInfo) {
+    showStatus('error', 'Payment info not loaded. Please refresh.');
+    return;
+  }
+
+  try {
+    state = 'paying';
+    updateSteps();
+    actionBtn.disabled = true;
+    actionBtn.innerHTML = '<div class="spinner"></div> Preparing transaction...';
+
+    // 1. Get a unique nonce from the server (replay protection)
+    showStatus('pending', 'Getting nonce from server...');
+    const nonceRes = await fetch('/api/nonce');
+    const { nonce } = await nonceRes.json();
+
+    // 2. Encode the contract call
+    //    payForAccess(string resourceId, address creator, uint256 amount, bytes32 nonce)
+    const calldata = encodePayForAccess(
+      paymentInfo.resourceId,
+      paymentInfo.creatorAddress,
+      paymentInfo.priceWei,
+      nonce
+    );
+
+    showStatus('pending', 'Confirm the transaction in your wallet...');
+    actionBtn.innerHTML = '<div class="spinner"></div> Confirm in wallet...';
+
+    // 3. Send the transaction to the A402Verifier contract
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: userAddress,
+        to: paymentInfo.verifierContract,
+        value: '0x' + BigInt(paymentInfo.priceWei).toString(16),
+        data: calldata,
+      }],
+    });
+
+    showStatus('pending', 'Transaction sent! Verifying on Apertum...');
+    actionBtn.innerHTML = '<div class="spinner"></div> Verifying on-chain...';
+
+    // Show tx hash
+    txLink.classList.add('show');
+    txLink.innerHTML = `<strong>Tx:</strong> <a href="https://explorer.apertum.io/tx/${txHash}" target="_blank">${txHash}</a>`;
+
+    // 4. Verify with the server
+    state = 'verifying';
+    updateSteps();
+    await verifyPayment(txHash);
+
+  } catch (err) {
+    console.error(err);
+    state = 'connected';
+    updateSteps();
+    actionBtn.disabled = false;
+    actionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Pay ${paymentInfo?.price || '0.001'}+ APTM via Contract
+    `;
+    if (err.code === 4001) {
+      showStatus('error', 'Transaction rejected by user.');
+    } else {
+      showStatus('error', 'Transaction failed: ' + (err.message || err));
+    }
+  }
+}
+
+// ─── Verify Payment ──────────────────────────────────────────────
+async function verifyPayment(txHash, retries = 0) {
+  const MAX_RETRIES = 12;
+  const RETRY_DELAY = 1500;
+
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txHash }),
+    });
+    const data = await res.json();
+
+    if (data.verified) {
+      unlockVideo(data.videoId);
+      return;
+    }
+
+    if (data.pending && retries < MAX_RETRIES) {
+      showStatus('pending', `Waiting for confirmation... (${retries + 1}/${MAX_RETRIES})`);
+      setTimeout(() => verifyPayment(txHash, retries + 1), RETRY_DELAY);
+      return;
+    }
+
+    showStatus('error', data.error || 'Payment verification failed.');
+    state = 'connected';
+    updateSteps();
+    actionBtn.disabled = false;
+    actionBtn.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Retry Payment
+    `;
+  } catch (err) {
+    if (retries < MAX_RETRIES) {
+      setTimeout(() => verifyPayment(txHash, retries + 1), RETRY_DELAY);
+    } else {
+      showStatus('error', 'Verification timed out. Please refresh.');
+      state = 'connected';
+      updateSteps();
+      actionBtn.disabled = false;
+    }
+  }
+}
+
+// ─── Unlock Video ────────────────────────────────────────────────
+function unlockVideo(videoId) {
+  state = 'unlocked';
+  updateSteps();
+
+  const isLifetime = paymentInfo?.lifetimeAccess;
+  const msg = isLifetime
+    ? '✓ Lifetime access granted — this content is yours forever.'
+    : '✓ Payment verified. Video unlocked!';
+  showStatus('success', msg);
+
+  lockOverlay.classList.add('hidden');
+
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  iframe.allowFullscreen = true;
+  videoArea.insertBefore(iframe, lockOverlay);
+
+  const btnLabel = isLifetime ? 'Lifetime Access · Verified On-Chain' : 'Video Unlocked · Verified On-Chain';
+  actionBtn.className = 'btn btn-success';
+  actionBtn.disabled = true;
+  actionBtn.innerHTML = `
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    ${btnLabel}
+  `;
+}
+
+// ─── Wallet events ───────────────────────────────────────────────
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length === 0) {
+      state = 'disconnected';
+      userAddress = null;
+      walletBar.classList.remove('show');
+      updateSteps();
+      actionBtn.disabled = false;
+      actionBtn.innerHTML = `
+        <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
+        Connect Wallet
+      `;
+      hideStatus();
+    } else {
+      userAddress = accounts[0];
+      document.getElementById('walletAddr').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+    }
+  });
+  window.ethereum.on('chainChanged', () => window.location.reload());
+}
+</script>
+</body>
+</html>
