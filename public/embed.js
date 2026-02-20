@@ -249,10 +249,20 @@
     const result = await ethCall(vault, data);
     const d = result.slice(2);
 
-    const price = BigInt('0x' + d.slice(0, 64)).toString();
-    const lifetime = BigInt('0x' + d.slice(64, 128)) === 1n;
-    const active = BigInt('0x' + d.slice(128, 192)) === 1n;
-    const exists = BigInt('0x' + d.slice(192, 256)) === 1n;
+    // V2/V3 ABI: (string resourceId, uint256 price, bool lifetime, bool active,
+    //             string contentType, string contentRef, uint256 totalRevenue, uint256 paymentCount, ...)
+    // Word 0: offset to resourceId string (skip)
+    // Word 1: price
+    // Word 2: lifetimeAccess
+    // Word 3: active
+    // Word 4: offset to contentType
+    // Word 5: offset to contentRef
+    // Word 6: totalRevenue
+    // Word 7: paymentCount
+    const price = BigInt('0x' + d.slice(64, 128)).toString();
+    const lifetime = BigInt('0x' + d.slice(128, 192)) === 1n;
+    const active = BigInt('0x' + d.slice(192, 256)) === 1n;
+    const exists = price !== '0' || active;
 
     const typeOff = Number(BigInt('0x' + d.slice(256, 320))) * 2;
     const typeLen = Number(BigInt('0x' + d.slice(typeOff, typeOff + 64)));
@@ -262,7 +272,7 @@
     const refLen = Number(BigInt('0x' + d.slice(refOff, refOff + 64)));
     const contentRef = hexStr(d.slice(refOff + 64, refOff + 64 + refLen * 2));
 
-    const totalPayments = Number(BigInt('0x' + d.slice(384, 448)));
+    const totalPayments = Number(BigInt('0x' + d.slice(448, 512)));
 
     return { price, lifetime, active, exists, contentType, contentRef, totalPayments };
   }
@@ -418,18 +428,19 @@
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
       .a402-widget {
-        --bg: ${dark ? '#0b0d13' : '#ffffff'};
-        --bg-card: ${dark ? '#0f1219' : '#f8f9fb'};
+        --bg: ${dark ? '#0d0d0f' : '#faf8f5'};
+        --bg-card: ${dark ? '#141416' : '#ffffff'};
         --bg-overlay: ${dark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)'};
-        --border: ${dark ? '#1c2233' : '#e2e5ea'};
-        --text: ${dark ? '#b8bfce' : '#4a5568'};
-        --text-bright: ${dark ? '#eaf0f9' : '#1a202c'};
-        --text-dim: ${dark ? '#5c6478' : '#a0aec0'};
-        --blue: #3272e8;
-        --blue-light: #5a94f5;
-        --green: #22c55e;
-        --amber: #eab308;
-        --red: #ef4444;
+        --border: ${dark ? '#2a2520' : '#e0d8cc'};
+        --text: ${dark ? '#b8b0a0' : '#5a4e40'};
+        --text-bright: ${dark ? '#f0e6d0' : '#2c1e0e'};
+        --text-dim: ${dark ? '#6e6556' : '#564a3d'};
+        --blue: ${dark ? '#D4AF37' : '#B8860B'};
+        --blue-light: ${dark ? '#E8C84A' : '#9A7209'};
+        --green: ${dark ? '#22c55e' : '#16a34a'};
+        --amber: ${dark ? '#eab308' : '#ca8a04'};
+        --red: ${dark ? '#ef4444' : '#dc2626'};
+        --btn-text: ${dark ? '#0d0d0f' : '#ffffff'};
         --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
         --r: 12px;
         width: 100%;
@@ -500,9 +511,9 @@
       .chip {
         font-family: var(--mono); font-size: 10px; font-weight: 500;
         padding: 3px 8px; border-radius: 5px;
-        background: ${dark ? 'rgba(50,114,232,0.08)' : 'rgba(50,114,232,0.06)'};
+        background: ${dark ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.06)'};
         color: var(--blue-light);
-        border: 1px solid ${dark ? 'rgba(50,114,232,0.12)' : 'rgba(50,114,232,0.1)'};
+        border: 1px solid ${dark ? 'rgba(212,175,55,0.12)' : 'rgba(212,175,55,0.1)'};
       }
       .chip.lifetime {
         background: ${dark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.06)'};
@@ -531,13 +542,13 @@
         font-family: inherit; font-size: 13px; font-weight: 600;
         cursor: pointer; transition: all 0.15s ease;
         display: flex; align-items: center; justify-content: center; gap: 8px;
-        color: #fff;
-        background: linear-gradient(135deg, var(--blue), #4a6af5);
-        box-shadow: 0 4px 14px rgba(50,114,232,0.25);
+        color: var(--btn-text);
+        background: linear-gradient(135deg, var(--blue), ${dark ? '#B8860B' : '#7A5A00'});
+        box-shadow: 0 4px 14px rgba(212,175,55,0.25);
       }
       .action-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(50,114,232,0.35);
+        box-shadow: 0 6px 20px rgba(212,175,55,0.35);
       }
       .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
       .action-btn svg {
@@ -557,9 +568,9 @@
       }
       .status.show { display: block; }
       .status.info {
-        background: ${dark ? 'rgba(50,114,232,0.08)' : 'rgba(50,114,232,0.05)'};
+        background: ${dark ? 'rgba(212,175,55,0.08)' : 'rgba(212,175,55,0.05)'};
         color: var(--blue-light);
-        border: 1px solid ${dark ? 'rgba(50,114,232,0.12)' : 'rgba(50,114,232,0.1)'};
+        border: 1px solid ${dark ? 'rgba(212,175,55,0.12)' : 'rgba(212,175,55,0.1)'};
       }
       .status.error {
         background: ${dark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)'};
@@ -592,11 +603,91 @@
         animation: a402pulse 2.5s ease infinite;
       }
 
+      /* ── Custom player controls ── */
+      .player-wrap { position: relative; width: 100%; height: 100%; }
+      .player-wrap iframe { width: 100%; height: 100%; border: none; pointer-events: none; }
+      .player-wrap video { width: 100%; height: 100%; background: #000; object-fit: contain; }
+      .player-click-zone { position: absolute; inset: 0; z-index: 2; cursor: pointer; }
+      .player-controls {
+        position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+        background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+        padding: 32px 14px 12px; display: flex; flex-direction: column; gap: 8px;
+        opacity: 0; transition: opacity 0.25s ease;
+      }
+      .player-wrap:hover .player-controls,
+      .player-wrap.paused .player-controls { opacity: 1; }
+      .player-controls.force-show { opacity: 1; }
+
+      .seek-row { display: flex; align-items: center; gap: 0; width: 100%; }
+      .seek-bar {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 4px; border-radius: 2px;
+        background: rgba(255,255,255,0.15); outline: none; cursor: pointer;
+        transition: height 0.15s ease;
+      }
+      .seek-bar:hover { height: 6px; }
+      .seek-bar::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--blue-light); border: 2px solid #fff;
+        cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.4);
+        transition: transform 0.15s ease;
+      }
+      .seek-bar:hover::-webkit-slider-thumb { transform: scale(1.2); }
+      .seek-bar::-moz-range-thumb {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--blue-light); border: 2px solid #fff;
+        cursor: pointer;
+      }
+
+      .ctrl-row { display: flex; align-items: center; gap: 10px; }
+      .ctrl-btn {
+        background: none; border: none; cursor: pointer; padding: 4px;
+        display: grid; place-items: center; border-radius: 4px;
+        transition: background 0.15s;
+      }
+      .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
+      .ctrl-btn svg { width: 20px; height: 20px; fill: #fff; stroke: none; }
+      .ctrl-btn.small svg { width: 18px; height: 18px; }
+
+      .time-display {
+        font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.7);
+        user-select: none; white-space: nowrap;
+      }
+
+      .vol-group { display: flex; align-items: center; gap: 4px; }
+      .vol-bar {
+        -webkit-appearance: none; appearance: none;
+        width: 60px; height: 3px; border-radius: 2px;
+        background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
+      }
+      .vol-bar::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 10px; height: 10px;
+        border-radius: 50%; background: #fff; cursor: pointer;
+      }
+      .vol-bar::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+
+      .ctrl-spacer { flex: 1; }
+
+      /* Big center play button when paused */
+      .center-play {
+        position: absolute; top: 50%; left: 50%; z-index: 4;
+        transform: translate(-50%, -50%);
+        width: 64px; height: 64px; border-radius: 50%;
+        background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.15);
+        display: none; place-items: center; cursor: pointer;
+        backdrop-filter: blur(8px);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+      .center-play:hover { background: rgba(212,175,55,0.6); transform: translate(-50%, -50%) scale(1.08); }
+      .center-play svg { width: 28px; height: 28px; fill: #fff; stroke: none; margin-left: 3px; }
+      .player-wrap.paused .center-play { display: grid; }
+
       /* ── Spinner ── */
       .spinner {
         width: 14px; height: 14px;
-        border: 2px solid rgba(255,255,255,0.2);
-        border-top-color: #fff; border-radius: 50%;
+        border: 2px solid ${dark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'};
+        border-top-color: ${dark ? '#fff' : 'var(--blue)'}; border-radius: 50%;
         animation: a402spin 0.6s linear infinite;
       }
 
@@ -636,6 +727,12 @@
       this.vaultVersion = 1;
       this.acceptedTokens = []; // [{token, symbol, decimals, price}]
       this.selectedPayment = 'native'; // 'native' or token address
+
+      // Player state (YouTube custom player)
+      this.ytPlayer = null;
+      this.html5Player = null;
+      this.seekInterval = null;
+      this.isSeeking = false;
 
       // Shadow DOM
       this.shadow = hostEl.attachShadow({ mode: 'open' });
@@ -729,7 +826,7 @@
       // Type-aware thumbnail/preview
       let thumbHtml = '';
       const typePreview = {
-        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#8b5cf6' },
+        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#D4AF37' },
         file: { icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', label: 'Paid Download', color: '#eab308' },
         api: { icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', label: 'API Access', color: '#06b6d4' },
       };
@@ -740,7 +837,7 @@
         }
       } else {
         const tp = typePreview[cType];
-        thumbHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0a0b0d,#141620);">
+        thumbHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0d0d0f,#1a1814);">
           <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:${tp.color};fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.3;">${tp.icon}</svg>
           <span style="font-size:11px;color:rgba(255,255,255,0.15);font-family:var(--mono);">${tp.label}</span>
         </div>`;
@@ -775,7 +872,7 @@
           </div>
           ${this.acceptedTokens.length > 0 ? `
           <div class="token-selector" id="tokenSelector" style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="chip" data-pay="native" id="payOpt-native" style="cursor:pointer;font-weight:600;background:rgba(50,114,232,0.12);border-color:rgba(50,114,232,0.2);display:inline-flex;align-items:center;gap:3px;" onclick=""><img src="${APTM_ICON}" alt="" style="width:13px;height:13px;border-radius:50%;">APTM</button>
+            <button class="chip" data-pay="native" id="payOpt-native" style="cursor:pointer;font-weight:600;background:rgba(212,175,55,0.12);border-color:rgba(212,175,55,0.2);display:inline-flex;align-items:center;gap:3px;" onclick=""><img src="${APTM_ICON}" alt="" style="width:13px;height:13px;border-radius:50%;">APTM</button>
             ${this.acceptedTokens.map(t => {
               const meta = getTokenMeta(t.symbol);
               const iconHtml = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-1px;margin-right:3px;">` : '';
@@ -794,7 +891,7 @@
         </div>
         <div class="a402-footer">
           <span><span class="chain-dot"></span>Apertum · A402</span>
-          <a href="${EXPLORER}/address/${this.vault}" target="_blank" rel="noopener">View Vault</a>
+          <span></span>
         </div>
       `;
 
@@ -812,8 +909,8 @@
               // Update selected styles
               selector.querySelectorAll('button').forEach(b => {
                 b.style.fontWeight = b.dataset.pay === this.selectedPayment ? '600' : '400';
-                b.style.background = b.dataset.pay === this.selectedPayment ? 'rgba(50,114,232,0.12)' : '';
-                b.style.borderColor = b.dataset.pay === this.selectedPayment ? 'rgba(50,114,232,0.2)' : '';
+                b.style.background = b.dataset.pay === this.selectedPayment ? 'rgba(212,175,55,0.12)' : '';
+                b.style.borderColor = b.dataset.pay === this.selectedPayment ? 'rgba(212,175,55,0.2)' : '';
               });
               this.updatePayButtonLabel();
             });
@@ -1084,40 +1181,14 @@
       if (cType === 'video' || (!['article','file','api'].includes(cType))) {
         // ── Video renderer ──
         if (source.type === 'youtube') {
-          const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${source.value}?autoplay=1&rel=0&modestbranding=1`;
-          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-          iframe.allowFullscreen = true;
-          iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;';
-          area.appendChild(iframe);
+          this.buildYouTubePlayer(source.value, area);
         } else if (source.type === 'ipfs') {
-          // IPFS video — resolve through gateway
           const url = source.value.startsWith('ipfs://')
             ? 'https://ipfs.io/ipfs/' + source.value.replace('ipfs://', '')
             : source.value;
-          const video = document.createElement('video');
-          video.src = url;
-          video.controls = true;
-          video.autoplay = true;
-          video.controlsList = 'nodownload noplaybackrate';
-          video.disablePictureInPicture = true;
-          video.setAttribute('oncontextmenu', 'return false;');
-          video.draggable = false;
-          video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
-          video.addEventListener('contextmenu', e => e.preventDefault());
-          area.appendChild(video);
+          this.buildHTML5Player(url, area);
         } else if (source.type === 'direct') {
-          const video = document.createElement('video');
-          video.src = source.value;
-          video.controls = true;
-          video.autoplay = true;
-          video.controlsList = 'nodownload noplaybackrate';
-          video.disablePictureInPicture = true;
-          video.setAttribute('oncontextmenu', 'return false;');
-          video.draggable = false;
-          video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
-          video.addEventListener('contextmenu', e => e.preventDefault());
-          area.appendChild(video);
+          this.buildHTML5Player(source.value, area);
         }
 
       } else if (cType === 'article') {
@@ -1259,6 +1330,295 @@
         unlockedBar.style.display = 'flex';
         this.shadow.getElementById('unlockedLabel').textContent =
           this.resource.lifetime ? 'Lifetime Access' : 'Access Granted';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  YOUTUBE CUSTOM PLAYER (full controls, no YouTube UI exposed)
+    // ═══════════════════════════════════════════════════════════════
+
+    buildYouTubePlayer(videoId, area) {
+      const widget = this;
+      const wrap = document.createElement('div');
+      wrap.className = 'player-wrap paused';
+      wrap.addEventListener('contextmenu', e => e.preventDefault());
+
+      // Use unique IDs scoped to this widget instance
+      const uid = 'a402_' + Math.random().toString(36).slice(2, 8);
+
+      wrap.innerHTML = `
+        <div id="${uid}_yt"></div>
+        <div class="player-click-zone" id="${uid}_click"></div>
+        <div class="center-play" id="${uid}_center">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+        <div class="player-controls force-show" id="${uid}_controls">
+          <div class="seek-row">
+            <input type="range" class="seek-bar" id="${uid}_seek" min="0" max="1000" value="0">
+          </div>
+          <div class="ctrl-row">
+            <button class="ctrl-btn" id="${uid}_pp" title="Play/Pause">
+              <svg viewBox="0 0 24 24" id="${uid}_playIcon"><polygon points="5,3 19,12 5,21"/></svg>
+              <svg viewBox="0 0 24 24" id="${uid}_pauseIcon" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <div class="vol-group">
+              <button class="ctrl-btn small" id="${uid}_volBtn" title="Mute/Unmute">
+                <svg viewBox="0 0 24 24" id="${uid}_volOn"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <svg viewBox="0 0 24 24" id="${uid}_volOff" style="display:none;"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <input type="range" class="vol-bar" id="${uid}_vol" min="0" max="100" value="80">
+            </div>
+            <span class="time-display" id="${uid}_time">0:00 / 0:00</span>
+            <div class="ctrl-spacer"></div>
+            <button class="ctrl-btn small" id="${uid}_fs" title="Fullscreen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+      area.appendChild(wrap);
+
+      // Helper to get elements inside shadow DOM
+      const $ = (id) => widget.shadow.getElementById(id);
+
+      function fmtTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return m + ':' + sec.toString().padStart(2, '0');
+      }
+
+      function togglePlayPause() {
+        if (!widget.ytPlayer) return;
+        const s = widget.ytPlayer.getPlayerState();
+        if (s === YT.PlayerState.PLAYING) widget.ytPlayer.pauseVideo();
+        else widget.ytPlayer.playVideo();
+      }
+
+      function updateSeek() {
+        if (!widget.ytPlayer || widget.isSeeking || typeof widget.ytPlayer.getDuration !== 'function') return;
+        const dur = widget.ytPlayer.getDuration();
+        const cur = widget.ytPlayer.getCurrentTime();
+        if (dur > 0) {
+          const seekBar = $(`${uid}_seek`);
+          if (seekBar) {
+            seekBar.value = (cur / dur) * 1000;
+            const pct = (cur / dur) * 100;
+            seekBar.style.background = `linear-gradient(to right, var(--blue-light) ${pct}%, rgba(255,255,255,0.15) ${pct}%)`;
+          }
+          const timeEl = $(`${uid}_time`);
+          if (timeEl) timeEl.textContent = fmtTime(cur) + ' / ' + fmtTime(dur);
+        }
+      }
+
+      function updateVolIcon(vol) {
+        const on = $(`${uid}_volOn`);
+        const off = $(`${uid}_volOff`);
+        if (on) on.style.display = vol > 0 ? 'block' : 'none';
+        if (off) off.style.display = vol > 0 ? 'none' : 'block';
+      }
+
+      function onPlayerReady(e) {
+        const player = e.target;
+        player.setVolume(80);
+
+        setTimeout(() => {
+          const ctrl = $(`${uid}_controls`);
+          if (ctrl) ctrl.classList.remove('force-show');
+        }, 2000);
+
+        widget.seekInterval = setInterval(updateSeek, 250);
+
+        const clickZone = $(`${uid}_click`);
+        const centerPlay = $(`${uid}_center`);
+        const ppBtn = $(`${uid}_pp`);
+        if (clickZone) clickZone.addEventListener('click', togglePlayPause);
+        if (centerPlay) centerPlay.addEventListener('click', togglePlayPause);
+        if (ppBtn) ppBtn.addEventListener('click', togglePlayPause);
+
+        const seekBar = $(`${uid}_seek`);
+        if (seekBar) {
+          seekBar.addEventListener('input', () => {
+            widget.isSeeking = true;
+            const duration = widget.ytPlayer.getDuration();
+            const time = (seekBar.value / 1000) * duration;
+            const timeEl = $(`${uid}_time`);
+            if (timeEl) timeEl.textContent = fmtTime(time) + ' / ' + fmtTime(duration);
+          });
+          seekBar.addEventListener('change', () => {
+            const duration = widget.ytPlayer.getDuration();
+            widget.ytPlayer.seekTo((seekBar.value / 1000) * duration, true);
+            widget.isSeeking = false;
+          });
+        }
+
+        const volBar = $(`${uid}_vol`);
+        if (volBar) {
+          volBar.addEventListener('input', (e) => {
+            const vol = parseInt(e.target.value);
+            widget.ytPlayer.setVolume(vol);
+            widget.ytPlayer.unMute();
+            updateVolIcon(vol);
+          });
+        }
+
+        const volBtn = $(`${uid}_volBtn`);
+        if (volBtn) {
+          volBtn.addEventListener('click', () => {
+            if (widget.ytPlayer.isMuted()) { widget.ytPlayer.unMute(); updateVolIcon(widget.ytPlayer.getVolume()); }
+            else { widget.ytPlayer.mute(); updateVolIcon(0); }
+          });
+        }
+
+        const fsBtn = $(`${uid}_fs`);
+        if (fsBtn) {
+          fsBtn.addEventListener('click', () => {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else wrap.requestFullscreen().catch(() => {});
+          });
+        }
+      }
+
+      function onPlayerStateChange(e) {
+        if (e.data === YT.PlayerState.PLAYING) {
+          wrap.classList.remove('paused');
+          const pi = $(`${uid}_playIcon`);
+          const pa = $(`${uid}_pauseIcon`);
+          if (pi) pi.style.display = 'none';
+          if (pa) pa.style.display = 'block';
+        } else if (e.data === YT.PlayerState.PAUSED) {
+          wrap.classList.add('paused');
+          const pi = $(`${uid}_playIcon`);
+          const pa = $(`${uid}_pauseIcon`);
+          if (pi) pi.style.display = 'block';
+          if (pa) pa.style.display = 'none';
+        } else if (e.data === YT.PlayerState.ENDED) {
+          wrap.classList.add('paused');
+          const pi = $(`${uid}_playIcon`);
+          const pa = $(`${uid}_pauseIcon`);
+          if (pi) pi.style.display = 'block';
+          if (pa) pa.style.display = 'none';
+          // If not lifetime access, relock after video ends
+          if (!widget.resource.lifetime) {
+            if (widget.seekInterval) clearInterval(widget.seekInterval);
+            widget.relock();
+          }
+        }
+      }
+
+      // Load YouTube IFrame API if not already loaded
+      function createPlayer() {
+        // YT.Player can target an element directly (not just an ID string)
+        const container = $(`${uid}_yt`);
+        widget.ytPlayer = new YT.Player(container, {
+          videoId: videoId,
+          width: '100%',
+          height: '100%',
+          playerVars: {
+            autoplay: 1, controls: 0, rel: 0, modestbranding: 1,
+            showinfo: 0, iv_load_policy: 3, disablekb: 1, playsinline: 1,
+          },
+          events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange },
+        });
+      }
+
+      if (window.YT && window.YT.Player) {
+        // API already loaded
+        createPlayer();
+      } else {
+        // Load the API and queue this widget's player creation
+        if (!window._a402YTCallbacks) window._a402YTCallbacks = [];
+        window._a402YTCallbacks.push(createPlayer);
+
+        if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+          const tag = document.createElement('script');
+          tag.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(tag);
+
+          window.onYouTubeIframeAPIReady = function () {
+            window._a402YTCallbacks.forEach(cb => cb());
+            window._a402YTCallbacks = [];
+          };
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  HTML5 VIDEO PLAYER (IPFS / Direct URL — with protection)
+    // ═══════════════════════════════════════════════════════════════
+
+    buildHTML5Player(videoUrl, area) {
+      const widget = this;
+      const wrap = document.createElement('div');
+      wrap.className = 'player-wrap';
+      wrap.addEventListener('contextmenu', e => e.preventDefault());
+
+      const video = document.createElement('video');
+      video.src = videoUrl;
+      video.autoplay = true;
+      video.controls = true;
+      video.playsInline = true;
+      video.controlsList = 'nodownload noplaybackrate';
+      video.disablePictureInPicture = true;
+      video.draggable = false;
+      video.style.cssText = 'width:100%;height:100%;background:#000;object-fit:contain;';
+      video.addEventListener('contextmenu', e => e.preventDefault());
+
+      wrap.appendChild(video);
+      wrap.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;';
+      area.appendChild(wrap);
+
+      this.html5Player = video;
+
+      // Prevent drag-saving
+      video.addEventListener('dragstart', e => e.preventDefault());
+      wrap.addEventListener('dragstart', e => e.preventDefault());
+
+      // If not lifetime access, relock after video ends
+      if (!this.resource.lifetime) {
+        video.addEventListener('ended', () => {
+          this.relock();
+        });
+      }
+
+      video.addEventListener('error', () => {
+        wrap.innerHTML = `
+          <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;padding:24px;text-align:center;">
+            <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--text-dim);fill:none;stroke-width:1.5;margin-bottom:12px;">
+              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <div style="font-size:14px;color:var(--text-bright);margin-bottom:6px;">Video failed to load</div>
+            <div style="font-size:12px;color:var(--text-dim);">The source may be temporarily unavailable or the format may not be supported by your browser.</div>
+          </div>
+        `;
+      });
+    }
+
+    // ── Relock: reset widget to locked/pay state after video ends (non-lifetime) ──
+    relock() {
+      this.state = 'locked';
+
+      // Clean up players
+      if (this.ytPlayer) {
+        try { this.ytPlayer.destroy(); } catch {}
+        this.ytPlayer = null;
+      }
+      if (this.html5Player) {
+        try { this.html5Player.pause(); this.html5Player.src = ''; } catch {}
+        this.html5Player = null;
+      }
+      if (this.seekInterval) {
+        clearInterval(this.seekInterval);
+        this.seekInterval = null;
+      }
+      this.isSeeking = false;
+
+      // Re-render the full locked UI
+      this.render();
+
+      // If wallet is still connected, auto-show the pay button
+      if (this.userAddress) {
+        this.showPayButton();
+        this.setStatus('info', 'Video ended — pay again to re-watch.');
       }
     }
 
