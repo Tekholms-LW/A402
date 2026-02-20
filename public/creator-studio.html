@@ -662,6 +662,12 @@
                 <div class="thumb-preview" id="thumbPreview">
                   <div class="placeholder">Video preview will appear here</div>
                 </div>
+                <div class="field">
+                  <label>Description
+                    <span class="hint">A short description of this content. Shown to viewers before they pay.</span>
+                  </label>
+                  <textarea id="videoDescInput" rows="2" placeholder="What is this video about? e.g. 'Full breakdown of Q4 earnings and 2026 outlook...'"></textarea>
+                </div>
               </div>
 
               <!-- Article fields -->
@@ -680,6 +686,12 @@
                     Article source preview
                   </div>
                 </div>
+                <div class="field">
+                  <label>Description
+                    <span class="hint">A short description of this article. Shown to viewers before they pay.</span>
+                  </label>
+                  <textarea id="articleDescInput" rows="2" placeholder="What is this article about? e.g. 'In-depth analysis of DeFi yield strategies...'"></textarea>
+                </div>
               </div>
 
               <!-- File fields -->
@@ -695,6 +707,12 @@
                     <span class="hint">Display name for the download (e.g. "Q4 Report.pdf"). Optional — derived from URL if blank.</span>
                   </label>
                   <input type="text" id="fileNameInput" placeholder="report.pdf">
+                </div>
+                <div class="field">
+                  <label>Description
+                    <span class="hint">A short description of this file. Shown to viewers before they pay.</span>
+                  </label>
+                  <textarea id="fileDescInput" rows="2" placeholder="What does this file contain? e.g. 'Complete dataset of 2025 market performance...'"></textarea>
                 </div>
               </div>
 
@@ -818,6 +836,10 @@
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Content Source</div>
                 <div class="stat-value" id="reviewYtId" style="font-size:14px;word-break:break-all;">—</div>
+              </div>
+              <div class="stat-card" id="reviewDescCard" style="grid-column:1/-1; display:none;">
+                <div class="stat-label">Description</div>
+                <div class="stat-value" id="reviewDesc" style="font-size:13px;font-weight:400;color:var(--text);line-height:1.5;">—</div>
               </div>
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Estimated Gas Cost</div>
@@ -1528,6 +1550,14 @@ function parseContentInput() {
 // Keep backward compat alias
 function parseYouTube() { parseContentInput(); }
 
+function getContentDescription() {
+  const descIds = { video: 'videoDescInput', article: 'articleDescInput', file: 'fileDescInput', api: 'apiDescInput' };
+  const id = descIds[selectedContentType];
+  if (!id) return '';
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
 function toggleLifetime() {
   lifetimeAccess = !lifetimeAccess;
   document.getElementById('lifetimeToggle').classList.toggle('on', lifetimeAccess);
@@ -1588,6 +1618,17 @@ function addStep(step) {
     document.getElementById('reviewPrice').innerHTML = '<img src="' + APTM_ICON + '" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">' + document.getElementById('priceInput').value + ' APTM';
     document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
     document.getElementById('reviewYtId').textContent = parsedContentRef.length > 40 ? parsedContentRef.slice(0, 37) + '...' : parsedContentRef;
+
+    // Populate description in review
+    const descText = getContentDescription();
+    const descCard = document.getElementById('reviewDescCard');
+    if (descText) {
+      descCard.style.display = 'block';
+      document.getElementById('reviewDesc').textContent = descText;
+    } else {
+      descCard.style.display = 'none';
+    }
+
     document.getElementById('embedOutput').style.display = 'none';
     document.getElementById('reviewGas').textContent = 'Estimating...';
 
@@ -1716,9 +1757,7 @@ async function estimatePublishGas() {
     const price = toWei(document.getElementById('priceInput').value);
     const contentType = selectedContentType;
     const contentRef = parsedContentRef;
-
-    // Build the same calldata as publishResource
-    const sel = selector('addResource(string,uint256,bool,string,string)');
+    const description = getContentDescription();
 
     function encodeStrAt(s) {
       const bytes = new TextEncoder().encode(s);
@@ -1728,21 +1767,42 @@ async function estimatePublishGas() {
       return lenHex + dataHex.padEnd(Math.ceil(dataHex.length / 64) * 64, '0');
     }
 
-    const headSize = 5 * 32;
-    const resIdEncoded = encodeStrAt(resourceId);
-    const resIdSize = resIdEncoded.length / 2;
-    const typeEncoded = encodeStrAt(contentType);
-    const typeSize = typeEncoded.length / 2;
-    const refEncoded = encodeStrAt(contentRef);
+    let data;
 
-    const offset0 = headSize;
-    const offset3 = offset0 + resIdSize;
-    const offset4 = offset3 + typeSize;
-
-    const data = '0x' + sel +
-      padUint(offset0) + padUint(price) + padBool(lifetimeAccess) +
-      padUint(offset3) + padUint(offset4) +
-      resIdEncoded + typeEncoded + refEncoded;
+    if (vaultVersion >= 3 && description) {
+      const sel = selector('addResourceWithDescription(string,uint256,bool,string,string,string)');
+      const headSize = 6 * 32;
+      const resIdEncoded = encodeStrAt(resourceId);
+      const resIdSize = resIdEncoded.length / 2;
+      const typeEncoded = encodeStrAt(contentType);
+      const typeSize = typeEncoded.length / 2;
+      const refEncoded = encodeStrAt(contentRef);
+      const refSize = refEncoded.length / 2;
+      const descEncoded = encodeStrAt(description);
+      const offset0 = headSize;
+      const offset3 = offset0 + resIdSize;
+      const offset4 = offset3 + typeSize;
+      const offset5 = offset4 + refSize;
+      data = '0x' + sel +
+        padUint(offset0) + padUint(price) + padBool(lifetimeAccess) +
+        padUint(offset3) + padUint(offset4) + padUint(offset5) +
+        resIdEncoded + typeEncoded + refEncoded + descEncoded;
+    } else {
+      const sel = selector('addResource(string,uint256,bool,string,string)');
+      const headSize = 5 * 32;
+      const resIdEncoded = encodeStrAt(resourceId);
+      const resIdSize = resIdEncoded.length / 2;
+      const typeEncoded = encodeStrAt(contentType);
+      const typeSize = typeEncoded.length / 2;
+      const refEncoded = encodeStrAt(contentRef);
+      const offset0 = headSize;
+      const offset3 = offset0 + resIdSize;
+      const offset4 = offset3 + typeSize;
+      data = '0x' + sel +
+        padUint(offset0) + padUint(price) + padBool(lifetimeAccess) +
+        padUint(offset3) + padUint(offset4) +
+        resIdEncoded + typeEncoded + refEncoded;
+    }
 
     // Call eth_estimateGas and eth_gasPrice in parallel
     const [gasEstimate, gasPrice] = await Promise.all([
@@ -1758,7 +1818,6 @@ async function estimatePublishGas() {
     gasEl.innerHTML = `~${totalAptm}<span class="unit" style="font-size:11px;color:var(--blue-light);margin-left:3px;">APTM</span> <span style="font-size:11px;color:var(--text-dim);">(${gasUnits.toLocaleString()} gas)</span>`;
 
   } catch (err) {
-    // If estimation fails (e.g. resource already exists), show a fallback
     gasEl.innerHTML = `~0.003<span class="unit" style="font-size:11px;color:var(--blue-light);margin-left:3px;">APTM</span> <span style="font-size:11px;color:var(--text-dim);">(est.)</span>`;
   }
 }
@@ -1777,23 +1836,9 @@ async function publishResource() {
   const price = toWei(document.getElementById('priceInput').value);
   const contentType = selectedContentType;
   const contentRef = parsedContentRef;
+  const description = getContentDescription();
 
   try {
-    // Encode addResource(string, uint256, bool, string, string)
-    const sel = selector('addResource(string,uint256,bool,string,string)');
-
-    // ABI encode with dynamic types
-    // Head: 5 slots (offsets for strings + static values)
-    // Slot 0: offset to resourceId string
-    // Slot 1: uint256 price
-    // Slot 2: bool lifetimeAccess
-    // Slot 3: offset to contentType string
-    // Slot 4: offset to contentRef string
-
-    const resIdBytes = new TextEncoder().encode(resourceId);
-    const typeBytes = new TextEncoder().encode(contentType);
-    const refBytes = new TextEncoder().encode(contentRef);
-
     function encodeStrAt(s) {
       const bytes = new TextEncoder().encode(s);
       const lenHex = padUint(bytes.length);
@@ -1802,28 +1847,63 @@ async function publishResource() {
       return lenHex + dataHex.padEnd(Math.ceil(dataHex.length / 64) * 64, '0');
     }
 
-    // Calculate offsets (in bytes from start of params)
-    // 5 head slots = 5 * 32 = 160 bytes offset for first string
-    const headSize = 5 * 32;
-    const resIdEncoded = encodeStrAt(resourceId);
-    const resIdSize = resIdEncoded.length / 2; // bytes
-    const typeEncoded = encodeStrAt(contentType);
-    const typeSize = typeEncoded.length / 2;
-    const refEncoded = encodeStrAt(contentRef);
+    let data;
 
-    const offset0 = headSize; // resourceId offset
-    const offset3 = offset0 + resIdSize; // contentType offset
-    const offset4 = offset3 + typeSize; // contentRef offset
+    if (vaultVersion >= 3 && description) {
+      // V3: addResourceWithDescription(string,uint256,bool,string,string,string)
+      const sel = selector('addResourceWithDescription(string,uint256,bool,string,string,string)');
 
-    const data = '0x' + sel +
-      padUint(offset0) +         // offset to resourceId
-      padUint(price) +           // price (static)
-      padBool(lifetimeAccess) +  // lifetime (static)
-      padUint(offset3) +         // offset to contentType
-      padUint(offset4) +         // offset to contentRef
-      resIdEncoded +
-      typeEncoded +
-      refEncoded;
+      // Head: 6 slots (3 string offsets + price + lifetime + description offset)
+      const headSize = 6 * 32;
+      const resIdEncoded = encodeStrAt(resourceId);
+      const resIdSize = resIdEncoded.length / 2;
+      const typeEncoded = encodeStrAt(contentType);
+      const typeSize = typeEncoded.length / 2;
+      const refEncoded = encodeStrAt(contentRef);
+      const refSize = refEncoded.length / 2;
+      const descEncoded = encodeStrAt(description);
+
+      const offset0 = headSize;                       // resourceId
+      const offset3 = offset0 + resIdSize;             // contentType
+      const offset4 = offset3 + typeSize;              // contentRef
+      const offset5 = offset4 + refSize;               // description
+
+      data = '0x' + sel +
+        padUint(offset0) +         // offset to resourceId
+        padUint(price) +           // price (static)
+        padBool(lifetimeAccess) +  // lifetime (static)
+        padUint(offset3) +         // offset to contentType
+        padUint(offset4) +         // offset to contentRef
+        padUint(offset5) +         // offset to description
+        resIdEncoded +
+        typeEncoded +
+        refEncoded +
+        descEncoded;
+    } else {
+      // V2 fallback: addResource(string,uint256,bool,string,string)
+      const sel = selector('addResource(string,uint256,bool,string,string)');
+
+      const headSize = 5 * 32;
+      const resIdEncoded = encodeStrAt(resourceId);
+      const resIdSize = resIdEncoded.length / 2;
+      const typeEncoded = encodeStrAt(contentType);
+      const typeSize = typeEncoded.length / 2;
+      const refEncoded = encodeStrAt(contentRef);
+
+      const offset0 = headSize;
+      const offset3 = offset0 + resIdSize;
+      const offset4 = offset3 + typeSize;
+
+      data = '0x' + sel +
+        padUint(offset0) +         // offset to resourceId
+        padUint(price) +           // price (static)
+        padBool(lifetimeAccess) +  // lifetime (static)
+        padUint(offset3) +         // offset to contentType
+        padUint(offset4) +         // offset to contentRef
+        resIdEncoded +
+        typeEncoded +
+        refEncoded;
+    }
 
     const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
@@ -1955,6 +2035,7 @@ async function loadMyContent() {
                 <span><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:2px;">Revenue: ${rev} APTM</span>
               </div>
               <div class="res-stats token-prices-row" id="tokenPrices-${item.resourceId}" style="margin-top:2px;"></div>
+              ${item.description ? `<div style="font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.5;max-width:520px;">${item.description.length > 160 ? item.description.slice(0, 157) + '...' : item.description}</div>` : ''}
             </div>
             <div class="res-actions">
               <button class="btn btn-sm btn-secondary" onclick="openEdit('${safeId}', ${item.price}, ${item.lifetime})">
@@ -2007,6 +2088,11 @@ async function loadMyContent() {
                 <label>Content Ref (YouTube ID / URL / IPFS hash)</label>
                 <input type="text" id="editRef-${item.resourceId}" placeholder="Loading..." disabled>
               </div>
+              <div class="edit-full" ${vaultVersion >= 3 ? '' : 'style="display:none;"'}>
+                <label>Description <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(139,92,246,0.08);color:#8b5cf6;border:1px solid rgba(139,92,246,0.1);">V3</span></label>
+                <textarea id="editDesc-${item.resourceId}" rows="2" style="width:100%;padding:10px 13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-bright);font-family:var(--sans);font-size:12.5px;line-height:1.5;resize:vertical;min-height:56px;outline:none;"
+                  placeholder="Short description of this content...">${item.description || ''}</textarea>
+              </div>
               <div class="edit-full" id="editTokenSection-${item.resourceId}" style="display:none;">
                 <label style="display:flex;align-items:center;gap:6px;">
                   Token Prices
@@ -2039,21 +2125,27 @@ async function loadMyContent() {
 }
 
 function decodeResourceByIndex(hex) {
-  // Returns: (string resourceId, uint256 price, bool lifetime, bool active, string contentType, uint256 revenue, uint256 payments)
+  // V2 returns: (string resourceId, uint256 price, bool lifetime, bool active,
+  //              string contentType, string contentRef, uint256 revenue, uint256 payments)
+  // V3 adds:    ... , string description (9th return value)
+  //
+  // ABI layout (head words):
+  //   Word 0: offset to resourceId (string)
+  //   Word 1: price (uint256)
+  //   Word 2: lifetimeAccess (bool)
+  //   Word 3: active (bool)
+  //   Word 4: offset to contentType (string)
+  //   Word 5: offset to contentRef (string)
+  //   Word 6: totalRevenue (uint256)
+  //   Word 7: paymentCount (uint256)
+  //   Word 8: offset to description (string) — V3 only
   const d = hex.slice(2);
-  // Parse ABI-encoded response with dynamic strings
-  // Word 0: offset to resourceId string
-  // Word 1: price (uint256)
-  // Word 2: lifetimeAccess (bool)
-  // Word 3: active (bool)
-  // Word 4: offset to contentType string
-  // Word 5: revenue (uint256)
-  // Word 6: payments (uint256)
+
   const price = BigInt('0x' + d.slice(64, 128)).toString();
   const lifetime = BigInt('0x' + d.slice(128, 192)) === 1n;
   const active = BigInt('0x' + d.slice(192, 256)) === 1n;
-  const revenue = BigInt('0x' + d.slice(320, 384)).toString();
-  const payments = Number(BigInt('0x' + d.slice(384, 448)));
+  const revenue = BigInt('0x' + d.slice(384, 448)).toString();
+  const payments = Number(BigInt('0x' + d.slice(448, 512)));
 
   // Decode resourceId string (offset at word 0)
   const resIdOffset = Number(BigInt('0x' + d.slice(0, 64))) * 2;
@@ -2067,7 +2159,28 @@ function decodeResourceByIndex(hex) {
   const typeHex = d.slice(typeOffset + 64, typeOffset + 64 + typeLen * 2);
   const contentType = hexToString(typeHex);
 
-  return { resourceId, price, lifetime, active, contentType, revenue, payments };
+  // Decode contentRef string (offset at word 5)
+  const refOffset = Number(BigInt('0x' + d.slice(320, 384))) * 2;
+  const refLen = Number(BigInt('0x' + d.slice(refOffset, refOffset + 64)));
+  const refHex = d.slice(refOffset + 64, refOffset + 64 + refLen * 2);
+  const contentRef = hexToString(refHex);
+
+  // V3: Decode description string (offset at word 8) if present
+  let description = '';
+  if (d.length > 512) {
+    try {
+      const descOffset = Number(BigInt('0x' + d.slice(512, 576))) * 2;
+      if (descOffset > 0 && descOffset < d.length) {
+        const descLen = Number(BigInt('0x' + d.slice(descOffset, descOffset + 64)));
+        if (descLen > 0 && descLen < 10000) {
+          const descHex = d.slice(descOffset + 64, descOffset + 64 + descLen * 2);
+          description = hexToString(descHex);
+        }
+      }
+    } catch { /* V2 vault — no description, ignore */ }
+  }
+
+  return { resourceId, price, lifetime, active, contentType, contentRef, revenue, payments, description };
 }
 
 function hexToString(hex) {
@@ -2768,10 +2881,12 @@ async function openEdit(resourceId) {
     // Store originals
     const priceInput = document.getElementById('editPrice-' + resourceId);
     const lifetimeEl = document.getElementById('editLifetime-' + resourceId);
+    const descInput = document.getElementById('editDesc-' + resourceId);
     editOriginals[resourceId] = {
       price: priceInput.value,
       lifetime: lifetimeEl.classList.contains('on'),
       contentRef: contentRef,
+      description: descInput ? descInput.value.trim() : '',
     };
   } catch (err) {
     refInput.value = '';
@@ -2801,6 +2916,8 @@ async function saveEdit(resourceId) {
   const newPrice = document.getElementById('editPrice-' + resourceId).value;
   const newLifetime = document.getElementById('editLifetime-' + resourceId).classList.contains('on');
   const newRef = document.getElementById('editRef-' + resourceId).value.trim();
+  const descEl = document.getElementById('editDesc-' + resourceId);
+  const newDesc = descEl ? descEl.value.trim() : '';
 
   if (!newPrice || parseFloat(newPrice) <= 0) {
     statusEl.className = 'edit-status show error';
@@ -2811,6 +2928,7 @@ async function saveEdit(resourceId) {
   const priceChanged = newPrice !== orig.price;
   const lifetimeChanged = newLifetime !== orig.lifetime;
   const refChanged = newRef !== orig.contentRef;
+  const descChanged = vaultVersion >= 3 && newDesc !== (orig.description || '');
 
   // V2: check if token prices changed
   let hasTokenChanges = false;
@@ -2825,7 +2943,7 @@ async function saveEdit(resourceId) {
     }
   }
 
-  if (!priceChanged && !lifetimeChanged && !refChanged && !hasTokenChanges) {
+  if (!priceChanged && !lifetimeChanged && !refChanged && !descChanged && !hasTokenChanges) {
     statusEl.className = 'edit-status show error';
     statusEl.textContent = 'No changes to save.';
     return;
@@ -2891,6 +3009,38 @@ async function saveEdit(resourceId) {
         const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
         if (receipt) {
           if (receipt.status !== '0x1') throw new Error('updateContentRef tx reverted');
+          break;
+        }
+      }
+    }
+
+    // V3: If description changed → updateDescription(string, string)
+    if (descChanged) {
+      statusEl.className = 'edit-status show pending';
+      statusEl.textContent = 'Updating description — confirm in wallet...';
+
+      const s = selector('updateDescription(string,string)');
+      const resBytes = encodeString(resourceId);
+      const descBytes = encodeString(newDesc);
+      const headSize = 64; // 2 offset slots
+      const resSize = resBytes.length / 2;
+
+      const data = '0x' + s +
+        padUint(headSize) +
+        padUint(headSize + resSize) +
+        resBytes +
+        descBytes;
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: userAddress, to: vaultAddress, data }],
+      });
+
+      for (let i = 0; i < 25; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+        if (receipt) {
+          if (receipt.status !== '0x1') throw new Error('updateDescription tx reverted');
           break;
         }
       }
