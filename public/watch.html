@@ -304,6 +304,13 @@ const EXPLORER = 'https://explorer.apertum.io';
 const IPFS_GATEWAY = 'https://ipfs.io';
 const FACTORY = '0x88408192d8548CD864f58E7d3c6f97fD577d4451';
 
+const TOKEN_META_BY_SYMBOL = {
+  'wUSDT': { name: 'Wrapped USDT', icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+  'USDC':  { name: 'USD Coin',     icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+};
+function getTokenMeta(symbol) { return TOKEN_META_BY_SYMBOL[symbol] || null; }
+const APTM_ICON = 'https://assets.apertum.io/assets/apertum-logo.svg';
+
 // Parse URL params
 const params = new URLSearchParams(window.location.search);
 const VAULT = params.get('vault');
@@ -348,11 +355,27 @@ async function getAllowedToks() {
     const off0=Number(BigInt('0x'+d.slice(0,64)))*2; const off1=Number(BigInt('0x'+d.slice(64,128)))*2; const off2=Number(BigInt('0x'+d.slice(128,192)))*2;
     const ac=Number(BigInt('0x'+d.slice(off0,off0+64))); const addrs=[];
     for(let i=0;i<ac;i++) addrs.push('0x'+d.slice(off0+64+i*64+24,off0+64+(i+1)*64));
-    const sc=Number(BigInt('0x'+d.slice(off1,off1+64))); const syms=[];
-    for(let i=0;i<sc;i++){const so=Number(BigInt('0x'+d.slice(off1+64+i*64,off1+128+i*64)))*2;const sl=Number(BigInt('0x'+d.slice(off1+so,off1+so+64)));syms.push(hexStr(d.slice(off1+so+64,off1+so+64+sl*2)));}
+    const sc=Number(BigInt('0x'+d.slice(off1,off1+64))); const symStart=off1+64; const syms=[];
+    for(let i=0;i<sc;i++){const so=Number(BigInt('0x'+d.slice(symStart+i*64,symStart+(i+1)*64)))*2;const absOff=symStart+so;const sl=Number(BigInt('0x'+d.slice(absOff,absOff+64)));syms.push(hexStr(d.slice(absOff+64,absOff+64+sl*2)));}
     const dc=Number(BigInt('0x'+d.slice(off2,off2+64))); const decs=[];
     for(let i=0;i<dc;i++) decs.push(Number(BigInt('0x'+d.slice(off2+64+i*64,off2+128+i*64))));
-    return addrs.map((a,i)=>({address:a,symbol:syms[i]||'ERC20',decimals:decs[i]||18}));
+    const tokens = addrs.map((a,i)=>({address:a,symbol:syms[i]||'ERC20',decimals:decs[i]||18}));
+
+    // Fix garbled symbols by querying token contracts directly
+    for (const tok of tokens) {
+      if (!tok.symbol || tok.symbol === 'ERC20' || /[^\x20-\x7E]/.test(tok.symbol)) {
+        try {
+          const symSel=sel('symbol()'); const symR=await ethCall(tok.address,'0x'+symSel);
+          const sd=symR.slice(2); const sOff=Number(BigInt('0x'+sd.slice(0,64)))*2;
+          const sLen=Number(BigInt('0x'+sd.slice(sOff,sOff+64)));
+          tok.symbol=hexStr(sd.slice(sOff+64,sOff+64+sLen*2))||'ERC20';
+        } catch{}
+      }
+      if (tok.decimals===18) {
+        try { const dSel=sel('decimals()'); const dR=await ethCall(tok.address,'0x'+dSel); tok.decimals=Number(BigInt(dR)); } catch{}
+      }
+    }
+    return tokens;
   } catch { return []; }
 }
 
@@ -482,12 +505,14 @@ function getThumbnailUrl(source) {
     if (acceptedTokens.length > 0) {
       const row = document.getElementById('tokenSelectorRow');
       row.style.display = 'block';
-      let btnsHtml = `<button class="chip" data-pay="native" onclick="selectPay('native')" style="cursor:pointer;font-weight:bold;border-color:rgba(50,114,232,0.2);background:var(--blue-glow);">
-        <strong>${fromWei(price)} APTM</strong>
+      let btnsHtml = `<button class="chip" data-pay="native" onclick="selectPay('native')" style="cursor:pointer;font-weight:bold;border-color:rgba(50,114,232,0.2);background:var(--blue-glow);display:inline-flex;align-items:center;gap:4px;">
+        <img src="${APTM_ICON}" alt="" style="width:14px;height:14px;border-radius:50%;"><strong>${fromWei(price)} APTM</strong>
       </button>`;
       for (const t of acceptedTokens) {
-        btnsHtml += `<button class="chip" data-pay="${t.token}" onclick="selectPay('${t.token}')" style="cursor:pointer;">
-          <strong>${fmtTokAmt(t.price, t.decimals)} ${t.symbol}</strong>
+        const meta = getTokenMeta(t.symbol);
+        const iconHtml = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px;">` : '';
+        btnsHtml += `<button class="chip" data-pay="${t.token}" onclick="selectPay('${t.token}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+          ${iconHtml}<strong>${fmtTokAmt(t.price, t.decimals)} ${t.symbol}</strong>
         </button>`;
       }
       document.getElementById('tokenButtons').innerHTML = btnsHtml;
@@ -498,7 +523,7 @@ function getThumbnailUrl(source) {
     document.getElementById('resDesc').textContent = active
       ? `Pay ${fromWei(price)} APTM to unlock this ${contentType}.`
       : 'This resource is currently paused by the creator.';
-    document.getElementById('priceDisplay').innerHTML = fromWei(price) + '<span class="cur">APTM</span>';
+    document.getElementById('priceDisplay').innerHTML = fromWei(price) + '<span class="cur"><img src="' + APTM_ICON + '" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">APTM</span>';
 
     let chips = '<div class="chip"><strong>Protocol</strong> HTTP 402</div>';
     chips += '<div class="chip"><strong>Verified</strong> On-Chain</div>';
@@ -608,10 +633,14 @@ function selectPay(method) {
   if (state === 'connected') {
     const btn = document.getElementById('actionBtn');
     if (method === 'native') {
-      btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fromWei(resourceConfig.price)} APTM`;
+      btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fromWei(resourceConfig.price)} <img src="${APTM_ICON}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin:0 2px;">APTM`;
     } else {
       const tok = acceptedTokens.find(t => t.token === method);
-      if (tok) btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fmtTokAmt(tok.price, tok.decimals)} ${tok.symbol}`;
+      if (tok) {
+        const meta = getTokenMeta(tok.symbol);
+        const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin:0 2px;">` : '';
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fmtTokAmt(tok.price, tok.decimals)} ${icon}${tok.symbol}`;
+      }
     }
   }
 }

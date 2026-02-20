@@ -744,7 +744,7 @@
               <label>Price <span class="req">*</span></label>
               <div class="input-with-tag">
                 <input type="number" id="priceInput" value="0.001" min="0.0001" step="0.0001">
-                <div class="input-tag">APTM</div>
+                <div class="input-tag" style="display:flex;align-items:center;gap:5px;"><img src="https://assets.apertum.io/assets/apertum-logo.svg" alt="" style="width:14px;height:14px;border-radius:50%;">APTM</div>
               </div>
             </div>
 
@@ -990,6 +990,29 @@ const CHAIN_HEX = '0x' + CHAIN_ID.toString(16);
 const EXPLORER = 'https://explorer.apertum.io';
 
 // ═══════════════════════════════════════════════════════════════
+//  TOKEN METADATA — icons & display names for known ERC-20 tokens
+//  Looked up by lowercased address first, then by symbol fallback.
+//  Add new tokens here as they're allowlisted on the factory.
+// ═══════════════════════════════════════════════════════════════
+
+const TOKEN_META_BY_ADDR = {
+  // Add known token addresses here (lowercased) as they're deployed
+};
+
+const TOKEN_META_BY_SYMBOL = {
+  'wUSDT': { name: 'Wrapped USDT', icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+  'USDC':  { name: 'USD Coin',     icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+};
+
+const APTM_ICON = 'https://assets.apertum.io/assets/apertum-logo.svg';
+
+function getTokenMeta(address, symbol) {
+  return TOKEN_META_BY_ADDR[address.toLowerCase()]
+      || TOKEN_META_BY_SYMBOL[symbol]
+      || null;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  ABI ENCODING HELPERS
 // ═══════════════════════════════════════════════════════════════
 
@@ -1079,6 +1102,29 @@ async function loadAllowedTokens() {
     const s = selector('getAllowedTokens()');
     const result = await ethCall(FACTORY, '0x' + s);
     allowedTokens = decodeAllowedTokens(result);
+
+    // Verify/fix symbols by querying each token contract directly if needed
+    for (let i = 0; i < allowedTokens.length; i++) {
+      const tok = allowedTokens[i];
+      if (!tok.symbol || tok.symbol === 'ERC20' || tok.symbol.length > 20 || /[^\x20-\x7E]/.test(tok.symbol)) {
+        // Symbol decode failed — query the token contract
+        try {
+          const symSel = selector('symbol()');
+          const symResult = await ethCall(tok.address, '0x' + symSel);
+          const sd = symResult.slice(2);
+          const symOff = Number(BigInt('0x' + sd.slice(0, 64))) * 2;
+          const symLen = Number(BigInt('0x' + sd.slice(symOff, symOff + 64)));
+          tok.symbol = hexToString(sd.slice(symOff + 64, symOff + 64 + symLen * 2)) || 'ERC20';
+        } catch { /* keep existing */ }
+      }
+      if (!tok.decimals || tok.decimals === 18) {
+        try {
+          const decSel = selector('decimals()');
+          const decResult = await ethCall(tok.address, '0x' + decSel);
+          tok.decimals = Number(BigInt(decResult));
+        } catch { /* keep existing */ }
+      }
+    }
   } catch { allowedTokens = []; }
 }
 
@@ -1100,12 +1146,16 @@ function decodeAllowedTokens(hex) {
   }
 
   // Decode symbols array (array of strings)
+  // ABI: string[] = [count][offset0, offset1, ...][string0_len][string0_data][string1_len][string1_data]...
+  // The sub-offsets are relative to the start of the array data area (after the count word)
   const symCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+  const symDataStart = off1 + 64; // position right after the count word
   const symbols = [];
   for (let i = 0; i < symCount; i++) {
-    const strOff = Number(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64))) * 2;
-    const strLen = Number(BigInt('0x' + d.slice(off1 + strOff, off1 + strOff + 64)));
-    const strHex = d.slice(off1 + strOff + 64, off1 + strOff + 64 + strLen * 2);
+    const strOff = Number(BigInt('0x' + d.slice(symDataStart + i * 64, symDataStart + (i + 1) * 64))) * 2;
+    const strAbsOff = symDataStart + strOff; // absolute position in d
+    const strLen = Number(BigInt('0x' + d.slice(strAbsOff, strAbsOff + 64)));
+    const strHex = d.slice(strAbsOff + 64, strAbsOff + 64 + strLen * 2);
     symbols.push(hexToString(strHex));
   }
 
@@ -1535,7 +1585,7 @@ function addStep(step) {
     }
     document.getElementById('reviewResId').textContent = document.getElementById('resId').value;
     document.getElementById('reviewType').textContent = selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1);
-    document.getElementById('reviewPrice').textContent = document.getElementById('priceInput').value + ' APTM';
+    document.getElementById('reviewPrice').innerHTML = '<img src="' + APTM_ICON + '" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">' + document.getElementById('priceInput').value + ' APTM';
     document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
     document.getElementById('reviewYtId').textContent = parsedContentRef.length > 40 ? parsedContentRef.slice(0, 37) + '...' : parsedContentRef;
     document.getElementById('embedOutput').style.display = 'none';
@@ -1547,7 +1597,11 @@ function addStep(step) {
     if (vaultVersion >= 2 && tokenPriceList.length > 0) {
       reviewTokCard.style.display = 'block';
       document.getElementById('reviewTokenPrices').innerHTML = tokenPriceList
-        .map(tp => `${tp.price} <span class="unit" style="font-size:11px;color:#8b5cf6;margin-left:3px;">${tp.symbol}</span>`)
+        .map(tp => {
+          const meta = getTokenMeta(tp.token, tp.symbol);
+          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
+          return `${icon}${tp.price} <span class="unit" style="font-size:11px;color:#8b5cf6;margin-left:2px;">${tp.symbol}</span>`;
+        })
         .join(' &nbsp;·&nbsp; ');
     } else {
       reviewTokCard.style.display = 'none';
@@ -1582,12 +1636,25 @@ function renderTokenPricingUI() {
   const container = document.getElementById('tokenPriceInputs');
   let html = '';
   for (const tok of allowedTokens) {
+    const meta = getTokenMeta(tok.address, tok.symbol);
+    const iconHtml = meta && meta.icon
+      ? `<img src="${meta.icon}" alt="${tok.symbol}" style="width:18px;height:18px;border-radius:50%;flex-shrink:0;">`
+      : `<div style="width:18px;height:18px;border-radius:50%;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);display:grid;place-items:center;flex-shrink:0;font-size:8px;font-weight:700;color:#8b5cf6;font-family:var(--mono);">${tok.symbol.charAt(0)}</div>`;
+    const displayName = meta && meta.name ? meta.name : tok.symbol;
+    const tagHtml = meta && meta.icon
+      ? `<div class="input-tag" style="gap:5px;color:#8b5cf6;display:flex;align-items:center;"><img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">${tok.symbol}</div>`
+      : `<div class="input-tag" style="color:#8b5cf6;">${tok.symbol}</div>`;
+
     html += `
       <div class="field" style="margin-bottom:10px;">
-        <label>${tok.symbol} Price <span class="hint">Optional — leave blank or 0 to not accept ${tok.symbol}</span></label>
+        <label style="display:flex;align-items:center;gap:6px;">
+          ${iconHtml}
+          <span>${displayName}</span>
+          <span class="hint" style="margin-left:0;">Optional — leave blank or 0 to skip</span>
+        </label>
         <div class="input-with-tag">
-          <input type="number" id="tokenPrice-${tok.address}" placeholder="0" min="0" step="any" data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}">
-          <div class="input-tag" style="color:#8b5cf6;">${tok.symbol}</div>
+          <input type="number" id="tokenPrice-${tok.address}" placeholder="e.g. 1.00" min="0" step="any" data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}">
+          ${tagHtml}
         </div>
       </div>`;
   }
@@ -1883,9 +1950,9 @@ async function loadMyContent() {
                 <span class="res-badge ${statusClass}">${statusLabel}</span>
               </div>
               <div class="res-stats">
-                <span>Price: ${priceAptm} APTM</span>
+                <span><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:2px;">Price: ${priceAptm} APTM</span>
                 <span>Payments: ${item.payments}</span>
-                <span>Revenue: ${rev} APTM</span>
+                <span><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:2px;">Revenue: ${rev} APTM</span>
               </div>
               <div class="res-stats token-prices-row" id="tokenPrices-${item.resourceId}" style="margin-top:2px;"></div>
             </div>
@@ -1926,7 +1993,7 @@ async function loadMyContent() {
           <div class="res-edit" id="edit-${item.resourceId}">
             <div class="edit-grid">
               <div>
-                <label>Price (APTM)</label>
+                <label style="display:flex;align-items:center;gap:4px;"><img src="${APTM_ICON}" alt="" style="width:14px;height:14px;border-radius:50%;">Price (APTM)</label>
                 <input type="number" id="editPrice-${item.resourceId}" value="${priceAptm}" min="0.0001" step="0.0001">
               </div>
               <div>
@@ -2021,7 +2088,11 @@ async function loadTokenPricesForResource(resourceId) {
     const row = document.getElementById('tokenPrices-' + resourceId);
     if (row && accepted.length > 0) {
       row.innerHTML = accepted
-        .map(t => `<span style="color:#8b5cf6;">${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`)
+        .map(t => {
+          const meta = getTokenMeta(t.token || t.address, t.symbol);
+          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
+          return `<span style="color:#8b5cf6;">${icon}${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`;
+        })
         .join('');
     }
 
@@ -2034,13 +2105,21 @@ async function loadTokenPricesForResource(resourceId) {
       for (const tok of allowedTokens) {
         const existing = accepted.find(a => a.token.toLowerCase() === tok.address.toLowerCase());
         const currentVal = existing ? formatTokenAmount(existing.price, tok.decimals) : '';
+        const meta = getTokenMeta(tok.address, tok.symbol);
+        const tagIcon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">` : '';
+        const displayName = meta && meta.name ? meta.name : tok.symbol;
         html += `
-          <div style="display:grid;grid-template-columns:1fr auto;gap:0;margin-bottom:6px;">
-            <input type="number" id="editTokPrice-${resourceId}-${tok.address}"
-              value="${currentVal}" placeholder="0" min="0" step="any"
-              data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}"
-              style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:12px;outline:none;">
-            <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:#8b5cf6;font-weight:500;display:flex;align-items:center;">${tok.symbol}</div>
+          <div style="margin-bottom:6px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-dim);margin-bottom:3px;">
+              ${tagIcon ? tagIcon : ''}<span>${displayName}</span>
+            </label>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:0;">
+              <input type="number" id="editTokPrice-${resourceId}-${tok.address}"
+                value="${currentVal}" placeholder="e.g. 1.00" min="0" step="any"
+                data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}"
+                style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:12px;outline:none;">
+              <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:#8b5cf6;font-weight:500;display:flex;align-items:center;gap:5px;">${tagIcon}${tok.symbol}</div>
+            </div>
           </div>`;
       }
       editInputs.innerHTML = html;

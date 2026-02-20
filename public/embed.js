@@ -29,6 +29,13 @@
   const EXPLORER = 'https://explorer.apertum.io';
   const FACTORY = '0x88408192d8548CD864f58E7d3c6f97fD577d4451';
 
+  const TOKEN_META_BY_SYMBOL = {
+    'wUSDT': { name: 'Wrapped USDT', icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+    'USDC':  { name: 'USD Coin',     icon: 'https://assets.apertum.io/assets/wusdt-aptm.svg' },
+  };
+  function getTokenMeta(symbol) { return TOKEN_META_BY_SYMBOL[symbol] || null; }
+  const APTM_ICON = 'https://assets.apertum.io/assets/apertum-logo.svg';
+
   // ═══════════════════════════════════════════════════════════════
   //  MINIMAL KECCAK-256 (self-contained, no dependencies)
   //  Ported from js-sha3 — only keccak256 is included.
@@ -324,11 +331,13 @@
       addresses.push('0x' + d.slice(off0 + 64 + i * 64 + 24, off0 + 64 + (i + 1) * 64));
     }
     const symCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+    const symDataStart = off1 + 64;
     const symbols = [];
     for (let i = 0; i < symCount; i++) {
-      const strOff = Number(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64))) * 2;
-      const strLen = Number(BigInt('0x' + d.slice(off1 + strOff, off1 + strOff + 64)));
-      const strHex = d.slice(off1 + strOff + 64, off1 + strOff + 64 + strLen * 2);
+      const strOff = Number(BigInt('0x' + d.slice(symDataStart + i * 64, symDataStart + (i + 1) * 64))) * 2;
+      const strAbsOff = symDataStart + strOff;
+      const strLen = Number(BigInt('0x' + d.slice(strAbsOff, strAbsOff + 64)));
+      const strHex = d.slice(strAbsOff + 64, strAbsOff + 64 + strLen * 2);
       symbols.push(hexStr(strHex));
     }
     const decCount = Number(BigInt('0x' + d.slice(off2, off2 + 64)));
@@ -678,6 +687,27 @@
               const info = allowed.find(t => t.address.toLowerCase() === a.token.toLowerCase());
               return { token: a.token, price: a.price, symbol: info?.symbol || 'ERC20', decimals: info?.decimals || 18 };
             }).filter(t => BigInt(t.price) > 0n);
+
+            // Fix any garbled symbols by querying token contracts directly
+            for (const t of this.acceptedTokens) {
+              if (!t.symbol || t.symbol === 'ERC20' || /[^\x20-\x7E]/.test(t.symbol)) {
+                try {
+                  const symSel = fnSel('symbol()');
+                  const symResult = await ethCall(t.token, '0x' + symSel);
+                  const sd = symResult.slice(2);
+                  const symOff = Number(BigInt('0x' + sd.slice(0, 64))) * 2;
+                  const symLen = Number(BigInt('0x' + sd.slice(symOff, symOff + 64)));
+                  t.symbol = hexStr(sd.slice(symOff + 64, symOff + 64 + symLen * 2)) || 'ERC20';
+                } catch {}
+              }
+              if (t.decimals === 18) {
+                try {
+                  const decSel = fnSel('decimals()');
+                  const decResult = await ethCall(t.token, '0x' + decSel);
+                  t.decimals = Number(BigInt(decResult));
+                } catch {}
+              }
+            }
           }
         }
 
@@ -741,12 +771,16 @@
               <div class="res-name" title="${this.resourceId}">${this.resourceId}</div>
               <div class="res-meta">${chips}</div>
             </div>
-            <div class="price-tag">${priceAptm}<span class="cur">APTM</span></div>
+            <div class="price-tag">${priceAptm}<span class="cur"><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:2px;">APTM</span></div>
           </div>
           ${this.acceptedTokens.length > 0 ? `
           <div class="token-selector" id="tokenSelector" style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="chip" data-pay="native" id="payOpt-native" style="cursor:pointer;font-weight:600;background:rgba(50,114,232,0.12);border-color:rgba(50,114,232,0.2);" onclick="">APTM</button>
-            ${this.acceptedTokens.map(t => `<button class="chip" data-pay="${t.token}" id="payOpt-${t.token}" style="cursor:pointer;">${fmtTokenAmt(t.price, t.decimals)} ${t.symbol}</button>`).join('')}
+            <button class="chip" data-pay="native" id="payOpt-native" style="cursor:pointer;font-weight:600;background:rgba(50,114,232,0.12);border-color:rgba(50,114,232,0.2);display:inline-flex;align-items:center;gap:3px;" onclick=""><img src="${APTM_ICON}" alt="" style="width:13px;height:13px;border-radius:50%;">APTM</button>
+            ${this.acceptedTokens.map(t => {
+              const meta = getTokenMeta(t.symbol);
+              const iconHtml = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-1px;margin-right:3px;">` : '';
+              return `<button class="chip" data-pay="${t.token}" id="payOpt-${t.token}" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;">${iconHtml}${fmtTokenAmt(t.price, t.decimals)} ${t.symbol}</button>`;
+            }).join('')}
           </div>` : ''}
           <button class="action-btn" id="actionBtn" ${!res.active ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
