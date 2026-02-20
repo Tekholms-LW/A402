@@ -10,20 +10,50 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #060709; --bg-card: #0c1018; --border: #1c2233;
-      --text: #b8bfce; --text-dim: #5c6478; --text-bright: #eaf0f9;
-      --blue: #3272e8; --blue-light: #5a94f5; --blue-glow: rgba(50,114,232,0.12);
+      --bg: #0d0d0f; --bg-card: #141416; --border: #2a2520;
+      --text: #b8b0a0; --text-dim: #6e6556; --text-bright: #f0e6d0;
+      --gold: #D4AF37; --gold-light: #E8C84A; --gold-glow: rgba(212,175,55,0.12);
+      --gold-dark: #B8860B;
       --green: #22c55e; --green-glow: rgba(34,197,94,0.1);
       --amber: #eab308; --amber-glow: rgba(234,179,8,0.08);
-      --red: #ef4444; --text-muted: #3a4052;
+      --red: #ef4444; --text-muted: #3a3428;
       --mono: 'JetBrains Mono', monospace; --sans: 'Sora', sans-serif;
+      --btn-text: #0d0d0f;
+      --lock-bg-start: rgba(13,13,15,0.5); --lock-bg-end: rgba(13,13,15,0.95);
+      --spinner-track: rgba(255,255,255,0.2); --spinner-head: #fff;
+      /* Legacy aliases */
+      --blue: var(--gold); --blue-light: var(--gold-light); --blue-glow: var(--gold-glow);
     }
+
+    /* ── Light mode ── */
+    [data-theme="light"] {
+      --bg: #faf8f5; --bg-card: #ffffff; --border: #e8e0d4;
+      --text: #5a4e40; --text-dim: #564a3d; --text-bright: #2c1e0e;
+      --gold: #B8860B; --gold-light: #9A7209; --gold-glow: rgba(184,134,11,0.10);
+      --gold-dark: #7A5A00;
+      --green: #16a34a; --green-glow: rgba(22,163,74,0.08);
+      --amber: #ca8a04; --amber-glow: rgba(202,138,4,0.06);
+      --red: #dc2626; --text-muted: #d4c9ba;
+      --btn-text: #fff;
+      --lock-bg-start: rgba(250,248,245,0.5); --lock-bg-end: rgba(250,248,245,0.95);
+      --spinner-track: rgba(0,0,0,0.1); --spinner-head: var(--gold);
+      --blue: var(--gold); --blue-light: var(--gold-light); --blue-glow: var(--gold-glow);
+    }
+
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      width: 32px; height: 32px; display: grid; place-items: center;
+      cursor: pointer; color: var(--text-dim); transition: all 0.2s;
+    }
+    .theme-toggle:hover { color: var(--gold); border-color: var(--gold); }
+    .theme-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
 
     .container { max-width: 680px; width: 100%; }
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .logo { display: flex; align-items: center; gap: 10px; }
-    .logo-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), #8b5cf6); display: grid; place-items: center; font-family: var(--mono); font-size: 13px; font-weight: 600; color: #fff; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); display: grid; place-items: center; font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--btn-text); }
     .logo-text { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text-bright); }
     .logo-text small { color: var(--text-dim); font-weight: 400; }
     .chain-tag { font-family: var(--mono); font-size: 10px; padding: 5px 10px; border-radius: 14px; border: 1px solid var(--border); color: var(--text-dim); display: flex; align-items: center; gap: 5px; }
@@ -59,14 +89,14 @@
     .seek-bar::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
       width: 14px; height: 14px; border-radius: 50%;
-      background: var(--blue-light); border: 2px solid #fff;
+      background: var(--gold-light); border: 2px solid #fff;
       cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.4);
       transition: transform 0.15s ease;
     }
     .seek-bar:hover::-webkit-slider-thumb { transform: scale(1.2); }
     .seek-bar::-moz-range-thumb {
       width: 14px; height: 14px; border-radius: 50%;
-      background: var(--blue-light); border: 2px solid #fff;
+      background: var(--gold-light); border: 2px solid #fff;
       cursor: pointer;
     }
 
@@ -109,13 +139,13 @@
       backdrop-filter: blur(8px);
       transition: transform 0.15s ease, background 0.15s ease;
     }
-    .center-play:hover { background: rgba(50,114,232,0.6); transform: translate(-50%, -50%) scale(1.08); }
+    .center-play:hover { background: rgba(212,175,55,0.6); transform: translate(-50%, -50%) scale(1.08); }
     .center-play svg { width: 28px; height: 28px; fill: #fff; stroke: none; margin-left: 3px; }
     .player-wrap.paused .center-play { display: grid; }
 
     .lock-overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(180deg, rgba(6,7,9,0.5), rgba(6,7,9,0.95));
+      background: linear-gradient(180deg, var(--lock-bg-start), var(--lock-bg-end));
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
       backdrop-filter: blur(6px); transition: opacity 0.4s, visibility 0.4s;
     }
@@ -163,7 +193,7 @@
     .price-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px; border-radius: 10px;
-      background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.1);
+      background: var(--blue-glow); border: 1px solid rgba(212,175,55,0.1);
       margin-bottom: 18px;
     }
     .price-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
@@ -182,12 +212,12 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
       transition: all 0.15s;
     }
-    .btn-primary { background: linear-gradient(135deg, var(--blue), #4a6af5); color: #fff; }
+    .btn-primary { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: var(--btn-text); }
     .btn-primary:hover { transform: translateY(-1px); }
     .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .btn-success { background: var(--green); color: #000; }
+    .btn-success { background: var(--green); color: #0d0d0f; }
     .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--spinner-track); border-top-color: var(--spinner-head); border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .status {
@@ -195,7 +225,7 @@
       font-family: var(--mono); font-size: 11.5px; line-height: 1.5; display: none;
     }
     .status.show { display: block; }
-    .status.info { background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.12); color: var(--blue-light); }
+    .status.info { background: var(--blue-glow); border: 1px solid rgba(212,175,55,0.12); color: var(--blue-light); }
     .status.success { background: var(--green-glow); border: 1px solid rgba(34,197,94,0.12); color: var(--green); }
     .status.error { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.12); color: var(--red); }
     .status.pending { background: var(--amber-glow); border: 1px solid rgba(234,179,8,0.12); color: var(--amber); }
@@ -229,6 +259,14 @@
     video { -webkit-user-drag: none; user-drag: none; }
     .video-area { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
+    /* ── Light mode element overrides ── */
+    [data-theme="light"] .chip { background: rgba(0,0,0,0.02); }
+    [data-theme="light"] .lock-icon { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+    [data-theme="light"] .lock-text { color: var(--text); }
+    [data-theme="light"] .lock-text strong { color: var(--text-bright); }
+    [data-theme="light"] .status.error { background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.12); }
+    [data-theme="light"] .footer a { color: var(--gold); }
+
   </style>
 </head>
 <body>
@@ -239,6 +277,9 @@
         <div class="logo-text">apertum<small>/x402</small></div>
       </div>
       <div class="chain-tag"><div class="dot"></div>eip155:2786</div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <svg viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
     </div>
 
     <div id="errorScreen" class="error-screen" style="display:none;">
@@ -456,16 +497,25 @@ function getThumbnailUrl(source) {
   document.getElementById('mainCard').style.display = 'block';
 
   try {
-    // getResource(string) → (price, lifetime, active, exists, contentType, contentRef, totalPayments)
+    // getResource(string) → V2: (string resourceId, uint256 price, bool lifetime, bool active, string contentType, string contentRef, uint256 totalRevenue, uint256 paymentCount)
+    //                        V3: same + string description (9th value)
     const s = sel('getResource(string)');
     const data = '0x' + s + padUint(32) + encStr(RESOURCE);
     const result = await ethCall(VAULT, data);
     const d = result.slice(2);
 
-    const price = BigInt('0x' + d.slice(0, 64)).toString();
-    const lifetime = BigInt('0x' + d.slice(64, 128)) === 1n;
-    const active = BigInt('0x' + d.slice(128, 192)) === 1n;
-    const exists = BigInt('0x' + d.slice(192, 256)) === 1n;
+    // Word 0: offset to resourceId string (skip — we already know the ID)
+    // Word 1: price (uint256)
+    // Word 2: lifetimeAccess (bool)
+    // Word 3: active (bool)
+    // Word 4: offset to contentType string
+    // Word 5: offset to contentRef string
+    // Word 6: totalRevenue (uint256)
+    // Word 7: paymentCount (uint256)
+    const price = BigInt('0x' + d.slice(64, 128)).toString();
+    const lifetime = BigInt('0x' + d.slice(128, 192)) === 1n;
+    const active = BigInt('0x' + d.slice(192, 256)) === 1n;
+    const exists = price !== '0' || active; // resource exists if returned without revert
 
     // Decode contentType (offset at word 4)
     const typeOff = Number(BigInt('0x' + d.slice(256, 320))) * 2;
@@ -477,7 +527,7 @@ function getThumbnailUrl(source) {
     const refLen = Number(BigInt('0x' + d.slice(refOff, refOff + 64)));
     const contentRef = hexStr(d.slice(refOff + 64, refOff + 64 + refLen * 2));
 
-    const totalPayments = Number(BigInt('0x' + d.slice(384, 448)));
+    const totalPayments = Number(BigInt('0x' + d.slice(448, 512)));
 
     if (!exists) {
       document.getElementById('resTitle').textContent = 'Resource Not Found';
@@ -505,7 +555,7 @@ function getThumbnailUrl(source) {
     if (acceptedTokens.length > 0) {
       const row = document.getElementById('tokenSelectorRow');
       row.style.display = 'block';
-      let btnsHtml = `<button class="chip" data-pay="native" onclick="selectPay('native')" style="cursor:pointer;font-weight:bold;border-color:rgba(50,114,232,0.2);background:var(--blue-glow);display:inline-flex;align-items:center;gap:4px;">
+      let btnsHtml = `<button class="chip" data-pay="native" onclick="selectPay('native')" style="cursor:pointer;font-weight:bold;border-color:rgba(212,175,55,0.2);background:var(--blue-glow);display:inline-flex;align-items:center;gap:4px;">
         <img src="${APTM_ICON}" alt="" style="width:14px;height:14px;border-radius:50%;"><strong>${fromWei(price)} APTM</strong>
       </button>`;
       for (const t of acceptedTokens) {
@@ -550,7 +600,7 @@ function getThumbnailUrl(source) {
       } else {
         // IPFS/Direct — show a styled video icon placeholder
         const placeholder = document.createElement('div');
-        placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a0b0d,#141620);';
+        placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d0d0f,#1a1814);';
         const sourceLabel = source.type === 'ipfs' ? 'IPFS Video' : 'Direct Video';
         placeholder.innerHTML = `
           <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:rgba(255,255,255,0.15);fill:none;stroke-width:1.5;">
@@ -563,13 +613,13 @@ function getThumbnailUrl(source) {
     } else if (['article','file','api'].includes(contentType)) {
       // Non-video type — show type-specific preview
       const typeInfo = {
-        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#8b5cf6' },
+        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#D4AF37' },
         file: { icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', label: 'Paid Download', color: '#eab308' },
         api: { icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', label: 'API Access', color: '#06b6d4' },
       };
       const ti = typeInfo[contentType];
       const placeholder = document.createElement('div');
-      placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a0b0d,#141620);';
+      placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0d0d0f,#1a1814);';
       placeholder.innerHTML = `
         <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:${ti.color};fill:none;stroke-width:1.5;opacity:0.25;stroke-linecap:round;stroke-linejoin:round;">
           ${ti.icon}
@@ -626,7 +676,7 @@ function selectPay(method) {
   document.querySelectorAll('#tokenButtons .chip').forEach(b => {
     const isSelected = b.dataset.pay === method;
     b.style.fontWeight = isSelected ? 'bold' : 'normal';
-    b.style.borderColor = isSelected ? 'rgba(50,114,232,0.2)' : '';
+    b.style.borderColor = isSelected ? 'rgba(212,175,55,0.2)' : '';
     b.style.background = isSelected ? 'var(--blue-glow)' : '';
   });
   // Update pay button label
@@ -1217,6 +1267,32 @@ if (window.ethereum) {
   window.ethereum.on('accountsChanged', () => window.location.reload());
   window.ethereum.on('chainChanged', () => window.location.reload());
 }
+</script>
+<script>
+// ── Theme toggle ──
+function getPreferredTheme() {
+  const stored = localStorage.getItem('a402-theme');
+  if (stored) return stored;
+  const urlTheme = new URLSearchParams(window.location.search).get('theme');
+  if (urlTheme === 'light' || urlTheme === 'dark') return urlTheme;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (theme === 'light') {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  } else {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('a402-theme', next);
+  applyTheme(next);
+}
+applyTheme(getPreferredTheme());
 </script>
 </body>
 </html>

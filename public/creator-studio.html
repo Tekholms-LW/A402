@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A402 Creator Studio · Apertum</title>
+  <title>A402 OP Creator Studio · Apertum</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- js-sha3 for keccak256 (function selectors + ABI encoding) -->
@@ -12,36 +12,74 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #060709;
-      --bg-raised: #0b0d13;
-      --bg-panel: #0f1219;
-      --bg-input: #131720;
-      --bg-hover: #161b26;
-      --border: #1c2233;
-      --border-light: #242d40;
-      --border-focus: #3272e8;
-      --text: #b8bfce;
-      --text-dim: #5c6478;
-      --text-bright: #eaf0f9;
-      --text-muted: #3a4052;
-      --blue: #3272e8;
-      --blue-light: #5a94f5;
-      --blue-glow: rgba(50, 114, 232, 0.12);
-      --blue-dim: rgba(50, 114, 232, 0.06);
+      --bg: #0d0d0f;
+      --bg-raised: #131315;
+      --bg-panel: #181819;
+      --bg-input: #1c1c1e;
+      --bg-hover: #222224;
+      --border: #ffecaf;
+      --border-light: #ffecaf;
+      --border-focus: #D4AF37;
+      --text: #d4af37;
+      --text-dim: #af9568;
+      --text-bright: #c3a97a;
+      --text-muted: #85775a;
+      --blue: #D4AF37;
+      --blue-light: #E8C84A;
+      --blue-glow: rgba(212, 175, 55, 0.12);
+      --blue-dim: rgba(212, 175, 55, 0.06);
       --green: #22c55e;
       --green-glow: rgba(34, 197, 94, 0.1);
       --amber: #eab308;
       --amber-glow: rgba(234, 179, 8, 0.08);
       --red: #ef4444;
       --red-glow: rgba(239, 68, 68, 0.08);
-      --violet: #8b5cf6;
-      --violet-glow: rgba(139, 92, 246, 0.08);
+      --violet: #B8860B;
+      --violet-glow: rgba(184, 134, 11, 0.08);
+      --gold: #D4AF37;
+      --gold-light: #E8C84A;
+      --gold-dark: #B8860B;
+      --gold-glow: rgba(212, 175, 55, 0.12);
+      --btn-text: #0d0d0f;
       --r: 10px;
       --r-lg: 14px;
       --r-xl: 18px;
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Sora', system-ui, sans-serif;
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Light mode ── */
+    [data-theme="light"] {
+      --bg: #faf8f5;
+      --bg-raised: #f2efe9;
+      --bg-panel: #ffffff;
+      --bg-input: #f7f4ef;
+      --bg-hover: #ece7de;
+      --border: #e0d8cc;
+      --border-light: #d4cabb;
+      --border-focus: #B8860B;
+      --text: #5a4e40;
+      --text-dim: #564a3d;
+      --text-bright: #2c1e0e;
+      --text-muted: #3f3f3f;
+      --blue: #B8860B;
+      --blue-light: #9A7209;
+      --blue-glow: rgba(184, 134, 11, 0.10);
+      --blue-dim: rgba(184, 134, 11, 0.05);
+      --green: #16a34a;
+      --green-glow: rgba(22, 163, 74, 0.08);
+      --amber: #ca8a04;
+      --amber-glow: rgba(202, 138, 4, 0.06);
+      --red: #dc2626;
+      --red-glow: rgba(220, 38, 38, 0.06);
+      --violet: #7A5A00;
+      --violet-glow: rgba(122, 90, 0, 0.06);
+      --gold: #B8860B;
+      --gold-light: #9A7209;
+      --gold-dark: #7A5A00;
+      --gold-glow: rgba(184, 134, 11, 0.10);
+      --btn-text: #fff;
     }
 
     html { scroll-behavior: smooth; }
@@ -57,8 +95,8 @@
       position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.07;
       animation: orb-drift 22s ease-in-out infinite alternate;
     }
-    .ambient .orb.o1 { width: 700px; height: 700px; top: -300px; left: -200px; background: var(--blue); }
-    .ambient .orb.o2 { width: 500px; height: 500px; bottom: -200px; right: -150px; background: var(--violet); animation-delay: -8s; }
+    .ambient .orb.o1 { width: 700px; height: 700px; top: -300px; left: -200px; background: var(--gold); }
+    .ambient .orb.o2 { width: 500px; height: 500px; bottom: -200px; right: -150px; background: #B8860B; animation-delay: -8s; }
     @keyframes orb-drift { to { transform: translate(50px, -40px) scale(1.1); } }
 
     /* ── Shell ── */
@@ -73,7 +111,7 @@
     .sb-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 32px; padding: 0 8px; }
     .sb-mark {
       width: 34px; height: 34px; border-radius: 9px;
-      background: linear-gradient(135deg, var(--blue), var(--violet));
+      background: linear-gradient(135deg, var(--gold), #B8860B);
       display: grid; place-items: center;
       font-family: var(--mono); font-weight: 600; font-size: 14px; color: #fff;
     }
@@ -94,11 +132,11 @@
       border: 1px solid transparent; user-select: none;
     }
     .sb-item:hover { color: var(--text); background: rgba(255,255,255,0.015); }
-    .sb-item.active { color: var(--text-bright); background: var(--blue-glow); border-color: rgba(50,114,232,0.12); }
+    .sb-item.active { color: var(--text-bright); background: var(--blue-glow); border-color: rgba(212,175,55,0.12); }
     .sb-item.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
     .sb-item svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
     .sb-badge {
-      margin-left: auto; font-family: var(--mono); font-size: 9px;
+      margin-left: auto; font-family: var(--mono); font-size: 12px;
       padding: 2px 6px; border-radius: 8px;
       background: var(--blue-dim); color: var(--blue-light);
     }
@@ -140,12 +178,12 @@
     .card-icon {
       width: 28px; height: 28px; border-radius: 7px;
       display: grid; place-items: center;
-      background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.1);
+      background: var(--blue-glow); border: 1px solid rgba(212,175,55,0.1);
     }
     .card-icon svg { width: 14px; height: 14px; stroke: var(--blue-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .card-icon.green { background: var(--green-glow); border-color: rgba(34,197,94,0.1); }
     .card-icon.green svg { stroke: var(--green); }
-    .card-icon.violet { background: var(--violet-glow); border-color: rgba(139,92,246,0.1); }
+    .card-icon.violet { background: var(--violet-glow); border-color: rgba(184,134,11,0.1); }
     .card-icon.violet svg { stroke: var(--violet); }
     .card-icon.amber { background: var(--amber-glow); border-color: rgba(234,179,8,0.1); }
     .card-icon.amber svg { stroke: var(--amber); }
@@ -239,8 +277,8 @@
       display: inline-flex; align-items: center; gap: 8px;
     }
     .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .btn-primary { background: linear-gradient(135deg, var(--blue), #4a6af5); color: #fff; box-shadow: 0 4px 18px var(--blue-glow); }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(50,114,232,0.2); }
+    .btn-primary { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: var(--btn-text); box-shadow: 0 4px 18px var(--blue-glow); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(212,175,55,0.2); }
     .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
     .btn-secondary:hover { border-color: var(--border-light); color: var(--text-bright); }
     .btn-green { background: var(--green); color: #000; }
@@ -259,7 +297,7 @@
       background: var(--border); transition: background 0.3s;
     }
     .wiz-seg.done { background: var(--green); }
-    .wiz-seg.current { background: var(--blue); }
+    .wiz-seg.current { background: var(--gold); }
 
     /* ── Status ── */
     .status-bar {
@@ -268,7 +306,7 @@
       margin-top: 16px; display: none;
     }
     .status-bar.show { display: block; animation: pageIn 0.25s ease; }
-    .status-bar.info { background: var(--blue-glow); border: 1px solid rgba(50,114,232,0.12); color: var(--blue-light); }
+    .status-bar.info { background: var(--blue-glow); border: 1px solid rgba(212,175,55,0.12); color: var(--blue-light); }
     .status-bar.success { background: var(--green-glow); border: 1px solid rgba(34,197,94,0.12); color: var(--green); }
     .status-bar.error { background: var(--red-glow); border: 1px solid rgba(239,68,68,0.12); color: var(--red); }
     .status-bar.pending { background: var(--amber-glow); border: 1px solid rgba(234,179,8,0.12); color: var(--amber); }
@@ -282,7 +320,7 @@
     .connect-icon {
       width: 80px; height: 80px; border-radius: 20px;
       background: linear-gradient(135deg, var(--blue-glow), var(--violet-glow));
-      border: 1px solid rgba(50,114,232,0.1);
+      border: 1px solid rgba(212,175,55,0.1);
       display: grid; place-items: center; margin-bottom: 24px;
     }
     .connect-icon svg { width: 36px; height: 36px; stroke: var(--blue-light); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -317,8 +355,8 @@
       font-family: var(--mono); font-size: 9.5px; padding: 3px 8px;
       border-radius: 5px; font-weight: 500;
     }
-    .res-badge.video { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(50,114,232,0.1); }
-    .res-badge.article { background: var(--violet-glow); color: var(--violet); border: 1px solid rgba(139,92,246,0.1); }
+    .res-badge.video { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(212,175,55,0.1); }
+    .res-badge.article { background: var(--violet-glow); color: var(--violet); border: 1px solid rgba(184,134,11,0.1); }
     .res-badge.file { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
     .res-badge.api { background: rgba(6,182,212,0.08); color: #06b6d4; border: 1px solid rgba(6,182,212,0.1); }
     .res-badge.lifetime { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
@@ -432,7 +470,7 @@
     }
     .code-header .copy-btn {
       background: none; border: 1px solid var(--border); border-radius: 4px;
-      padding: 3px 8px; font-family: var(--mono); font-size: 9px;
+      padding: 3px 8px; font-family: var(--mono); font-size: 12px;
       color: var(--text-dim); cursor: pointer;
     }
     .code-header .copy-btn:hover { border-color: var(--blue); color: var(--blue-light); }
@@ -480,7 +518,7 @@
       transition: all 0.15s var(--ease); user-select: none;
     }
     .filter-chip:hover { border-color: var(--border-light); color: var(--text); }
-    .filter-chip.active { background: var(--blue-glow); border-color: rgba(50,114,232,0.2); color: var(--blue-light); }
+    .filter-chip.active { background: var(--blue-glow); border-color: rgba(212,175,55,0.2); color: var(--blue-light); }
     .filter-spacer { flex: 1; }
 
     /* ── Transaction table ── */
@@ -502,7 +540,7 @@
     .tx-table .amt { color: var(--text-bright); font-weight: 500; }
     .tx-table .res-tag {
       font-size: 10px; padding: 2px 6px; border-radius: 4px;
-      background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(50,114,232,0.1);
+      background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(212,175,55,0.1);
     }
     .tx-table .time { color: var(--text-dim); font-size: 11px; }
     .tx-empty {
@@ -521,6 +559,32 @@
     }
     .tx-pagination button:hover:not(:disabled) { border-color: var(--border-light); color: var(--text); }
     .tx-pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 10px; border-radius: 8px;
+      font-size: 12.5px; color: var(--text-dim);
+      cursor: pointer; transition: all 0.15s var(--ease);
+      border: 1px solid transparent; user-select: none;
+      background: none;
+      font-family: var(--sans);
+    }
+    .theme-toggle:hover { color: var(--text); background: rgba(212,175,55,0.04); }
+    .theme-toggle svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    /* ── Light mode element overrides ── */
+    [data-theme="light"] .ambient .orb { opacity: 0.03; }
+    [data-theme="light"] .sb-item:hover { background: rgba(0,0,0,0.03); }
+    [data-theme="light"] .sb-mark { color: #fff; }
+    [data-theme="light"] .btn-primary { color: #fff; }
+    [data-theme="light"] .connect-icon { background: rgba(184,134,11,0.06); border-color: rgba(184,134,11,0.12); }
+    [data-theme="light"] .connect-icon svg { stroke: var(--gold); }
+    [data-theme="light"] .card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    [data-theme="light"] .card-icon { border-color: var(--border); }
+    [data-theme="light"] .res-item { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    [data-theme="light"] .drop-zone { border-color: var(--border); }
+    [data-theme="light"] .drop-zone:hover { border-color: var(--gold); background: rgba(184,134,11,0.03); }
 
     /* ── Responsive ── */
     @media (max-width: 860px) {
@@ -541,7 +605,7 @@
     <!-- ═══ SIDEBAR ═══ -->
     <aside class="sidebar">
       <div class="sb-brand">
-        <div class="sb-mark">A</div>
+        <div class="sb-mark">OP</div>
         <div class="sb-name">Creator Studio<small>A402 · Apertum</small></div>
       </div>
 
@@ -563,6 +627,10 @@
       </div>
 
       <div class="sb-footer">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+          <svg viewBox="0 0 24 24" id="themeIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <span id="themeLabel">Light Mode</span>
+        </button>
         <div class="sb-wallet" id="sidebarWallet">
           <span class="addr" id="sidebarAddr"></span>
           <span class="vault-addr" id="sidebarVault"></span>
@@ -781,7 +849,7 @@
               <div style="margin-top:8px; margin-bottom:14px; padding-top:16px; border-top:1px solid var(--border);">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
                   <span style="font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text); letter-spacing:0.2px;">ERC-20 TOKEN PRICING</span>
-                  <span style="font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(139,92,246,0.08); color:#8b5cf6; border:1px solid rgba(139,92,246,0.1);">V2</span>
+                  <span style="font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(184,134,11,0.08); color:var(--gold); border:1px solid rgba(184,134,11,0.1);">V2</span>
                 </div>
                 <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px;">
                   Optionally set prices in ERC-20 tokens. Viewers can pay with APTM or any token you price below.
@@ -1641,7 +1709,7 @@ function addStep(step) {
         .map(tp => {
           const meta = getTokenMeta(tp.token, tp.symbol);
           const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
-          return `${icon}${tp.price} <span class="unit" style="font-size:11px;color:#8b5cf6;margin-left:2px;">${tp.symbol}</span>`;
+          return `${icon}${tp.price} <span class="unit" style="font-size:11px;color:var(--gold);margin-left:2px;">${tp.symbol}</span>`;
         })
         .join(' &nbsp;·&nbsp; ');
     } else {
@@ -1680,11 +1748,11 @@ function renderTokenPricingUI() {
     const meta = getTokenMeta(tok.address, tok.symbol);
     const iconHtml = meta && meta.icon
       ? `<img src="${meta.icon}" alt="${tok.symbol}" style="width:18px;height:18px;border-radius:50%;flex-shrink:0;">`
-      : `<div style="width:18px;height:18px;border-radius:50%;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);display:grid;place-items:center;flex-shrink:0;font-size:8px;font-weight:700;color:#8b5cf6;font-family:var(--mono);">${tok.symbol.charAt(0)}</div>`;
+      : `<div style="width:18px;height:18px;border-radius:50%;background:rgba(184,134,11,0.1);border:1px solid rgba(184,134,11,0.15);display:grid;place-items:center;flex-shrink:0;font-size:8px;font-weight:700;color:var(--gold);font-family:var(--mono);">${tok.symbol.charAt(0)}</div>`;
     const displayName = meta && meta.name ? meta.name : tok.symbol;
     const tagHtml = meta && meta.icon
-      ? `<div class="input-tag" style="gap:5px;color:#8b5cf6;display:flex;align-items:center;"><img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">${tok.symbol}</div>`
-      : `<div class="input-tag" style="color:#8b5cf6;">${tok.symbol}</div>`;
+      ? `<div class="input-tag" style="gap:5px;color:var(--gold);display:flex;align-items:center;"><img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">${tok.symbol}</div>`
+      : `<div class="input-tag" style="color:var(--gold);">${tok.symbol}</div>`;
 
     html += `
       <div class="field" style="margin-bottom:10px;">
@@ -2089,14 +2157,14 @@ async function loadMyContent() {
                 <input type="text" id="editRef-${item.resourceId}" placeholder="Loading..." disabled>
               </div>
               <div class="edit-full" ${vaultVersion >= 3 ? '' : 'style="display:none;"'}>
-                <label>Description <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(139,92,246,0.08);color:#8b5cf6;border:1px solid rgba(139,92,246,0.1);">V3</span></label>
+                <label>Description <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V3</span></label>
                 <textarea id="editDesc-${item.resourceId}" rows="2" style="width:100%;padding:10px 13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-bright);font-family:var(--sans);font-size:12.5px;line-height:1.5;resize:vertical;min-height:56px;outline:none;"
                   placeholder="Short description of this content...">${item.description || ''}</textarea>
               </div>
               <div class="edit-full" id="editTokenSection-${item.resourceId}" style="display:none;">
                 <label style="display:flex;align-items:center;gap:6px;">
                   Token Prices
-                  <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(139,92,246,0.08);color:#8b5cf6;border:1px solid rgba(139,92,246,0.1);">V2</span>
+                  <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V2</span>
                 </label>
                 <div id="editTokenInputs-${item.resourceId}"></div>
               </div>
@@ -2204,7 +2272,7 @@ async function loadTokenPricesForResource(resourceId) {
         .map(t => {
           const meta = getTokenMeta(t.token || t.address, t.symbol);
           const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
-          return `<span style="color:#8b5cf6;">${icon}${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`;
+          return `<span style="color:var(--gold);">${icon}${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`;
         })
         .join('');
     }
@@ -2231,7 +2299,7 @@ async function loadTokenPricesForResource(resourceId) {
                 value="${currentVal}" placeholder="e.g. 1.00" min="0" step="any"
                 data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}"
                 style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:12px;outline:none;">
-              <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:#8b5cf6;font-weight:500;display:flex;align-items:center;gap:5px;">${tagIcon}${tok.symbol}</div>
+              <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:500;display:flex;align-items:center;gap:5px;">${tagIcon}${tok.symbol}</div>
             </div>
           </div>`;
       }
@@ -2695,7 +2763,7 @@ function renderChart() {
     const y = pad.top + cH - (revData[i] / maxRev) * cH;
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }
-  ctx.strokeStyle = '#5a94f5';
+  ctx.strokeStyle = '#E8C84A';
   ctx.lineWidth = 2;
   ctx.stroke();
 
@@ -3166,6 +3234,33 @@ if (window.ethereum) {
     } catch { /* silent fail — user will manually connect */ }
   })();
 }
+</script>
+<script>
+// ── Theme toggle ──
+function getPreferredTheme() {
+  const stored = localStorage.getItem('a402-theme');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  if (theme === 'light') {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    label.textContent = 'Dark Mode';
+  } else {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    label.textContent = 'Light Mode';
+  }
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('a402-theme', next);
+  applyTheme(next);
+}
+applyTheme(getPreferredTheme());
 </script>
 </body>
 </html>
