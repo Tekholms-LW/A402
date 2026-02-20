@@ -917,38 +917,56 @@ function unlockContent() {
     document.querySelector('.footer').style.display = 'none';
 
   } else if (cType === 'article') {
-    // ── Article renderer ──
+    // ── Article renderer (open in new tab) ──
     const area = document.getElementById('videoArea');
     area.style.aspectRatio = 'auto';
-    area.style.minHeight = '300px';
-    area.style.maxHeight = '80vh';
-    area.style.overflow = 'auto';
+    area.style.minHeight = '200px';
     area.style.background = 'var(--bg-card)';
-    area.style.padding = '32px';
-
-    area.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner" style="margin:0 auto 8px;"></div><div style="font-size:12px;color:var(--text-dim);">Loading article...</div></div>';
+    area.style.display = 'flex';
+    area.style.alignItems = 'center';
+    area.style.justifyContent = 'center';
+    area.style.padding = '40px';
 
     let url = resourceConfig.contentRef;
-    if (url.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
-    else if (/^(Qm|bafy)/.test(url)) url = 'https://ipfs.io/ipfs/' + url;
+    if (url.startsWith('ipfs://')) {
+      url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+    } else if (/^(Qm|bafy)/.test(url)) {
+      url = 'https://ipfs.io/ipfs/' + url;
+    }
 
-    fetch(url).then(r => r.text()).then(text => {
-      let html = text
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/^### (.+)$/gm, '<h3 style="font-size:16px;font-weight:600;color:var(--text-bright);margin:16px 0 8px;">$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2 style="font-size:18px;font-weight:600;color:var(--text-bright);margin:20px 0 10px;">$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1 style="font-size:22px;font-weight:700;color:var(--text-bright);margin:24px 0 12px;">$1</h1>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-bright);">$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px;">$1</code>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--blue-light);">$1</a>')
-        .replace(/\n\n/g, '</p><p style="margin-bottom:12px;">')
-        .replace(/\n/g, '<br>');
-      if (text.trim().match(/^(<html|<!doctype)/i)) html = text;
-      area.innerHTML = '<div style="font-size:14px;line-height:1.8;color:var(--text);"><p style="margin-bottom:12px;">' + html + '</p></div>';
-    }).catch(err => {
-      area.innerHTML = `<div style="text-align:center;padding:20px;"><div style="color:var(--red);font-size:13px;margin-bottom:6px;">Failed to load article</div><div style="font-size:11px;color:var(--text-dim);">${err.message}</div><a href="${url}" target="_blank" style="display:inline-block;margin-top:10px;color:var(--blue-light);font-size:12px;">Open directly</a></div>`;
-    });
+    area.innerHTML = `
+      <div style="text-align:center;">
+        <svg viewBox="0 0 24 24"
+          style="width:56px; height:56px; stroke:var(--green); fill:none;
+                 stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round;
+                 margin-bottom:16px;">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        <div style="font-size:16px; font-weight:600; color:var(--text-bright); margin-bottom:4px;">
+          Article Unlocked
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); margin-bottom:20px;">
+          Payment verified — your article is ready.
+        </div>
+        <a href="${url}" target="_blank" rel="noopener"
+          style="display:inline-flex; align-items:center; gap:8px;
+                 padding:14px 28px; border-radius:10px;
+                 background:var(--green); color:#000;
+                 font-size:14px; font-weight:600; text-decoration:none;">
+          <svg viewBox="0 0 24 24"
+            style="width:18px; height:18px; stroke:currentColor; fill:none;
+                   stroke-width:2; stroke-linecap:round; stroke-linejoin:round;">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Read Article
+        </a>
+      </div>
+    `;
 
     document.getElementById('actionBtn').style.display = 'none';
     document.querySelector('.header').style.display = 'none';
