@@ -115,28 +115,28 @@
       display: grid; place-items: center;
       font-family: var(--mono); font-weight: 600; font-size: 14px; color: #fff;
     }
-    .sb-name { font-size: 13px; font-weight: 600; color: var(--text-bright); }
-    .sb-name small { display: block; font-size: 10px; font-weight: 400; color: var(--text-dim); font-family: var(--mono); margin-top: 1px; }
+    .sb-name { font-size: 15px; font-weight: 600; color: var(--text-bright); }
+    .sb-name small { display: block; font-size: 11.5px; font-weight: 400; color: var(--text-dim); font-family: var(--mono); margin-top: 1px; }
 
     .sb-section { margin-bottom: 24px; }
     .sb-label {
-      font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 1.6px;
       color: var(--text-muted); margin-bottom: 8px; padding-left: 10px;
     }
     .sb-item {
       display: flex; align-items: center; gap: 9px;
       padding: 9px 10px; border-radius: 8px;
-      font-size: 12.5px; color: var(--text-dim);
+      font-size: 14px; color: var(--text-dim);
       cursor: pointer; transition: all 0.15s var(--ease);
       border: 1px solid transparent; user-select: none;
     }
     .sb-item:hover { color: var(--text); background: rgba(255,255,255,0.015); }
     .sb-item.active { color: var(--text-bright); background: var(--blue-glow); border-color: rgba(212,175,55,0.12); }
     .sb-item.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
-    .sb-item svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .sb-item svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
     .sb-badge {
-      margin-left: auto; font-family: var(--mono); font-size: 12px;
+      margin-left: auto; font-family: var(--mono); font-size: 13px;
       padding: 2px 6px; border-radius: 8px;
       background: var(--blue-dim); color: var(--blue-light);
     }
@@ -145,7 +145,7 @@
     .sb-wallet {
       padding: 10px; border-radius: 8px;
       background: var(--green-glow); border: 1px solid rgba(34,197,94,0.1);
-      font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+      font-family: var(--mono); font-size: 12px; color: var(--text-dim);
       display: none; flex-direction: column; gap: 4px;
     }
     .sb-wallet.show { display: flex; }
@@ -153,7 +153,7 @@
     .sb-wallet .vault-addr { color: var(--text-dim); word-break: break-all; }
     .sb-chain {
       display: flex; align-items: center; gap: 7px;
-      padding: 9px 10px; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      padding: 9px 10px; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
     }
     .sb-chain-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2.5s ease infinite; }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
@@ -166,8 +166,8 @@
     .page.active { display: block; }
     @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .page-title { font-size: 24px; font-weight: 700; color: var(--text-bright); letter-spacing: -0.3px; margin-bottom: 6px; }
-    .page-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 32px; max-width: 560px; }
+    .page-title { font-size: 28px; font-weight: 700; color: var(--text-bright); letter-spacing: -0.3px; margin-bottom: 6px; }
+    .page-desc { font-size: 15px; color: var(--text-dim); margin-bottom: 32px; max-width: 620px; }
 
     /* ── Cards ── */
     .card {
@@ -176,45 +176,45 @@
     }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .card-icon {
-      width: 28px; height: 28px; border-radius: 7px;
+      width: 34px; height: 34px; border-radius: 8px;
       display: grid; place-items: center;
       background: var(--blue-glow); border: 1px solid rgba(212,175,55,0.1);
     }
-    .card-icon svg { width: 14px; height: 14px; stroke: var(--blue-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .card-icon svg { width: 17px; height: 17px; stroke: var(--blue-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .card-icon.green { background: var(--green-glow); border-color: rgba(34,197,94,0.1); }
     .card-icon.green svg { stroke: var(--green); }
     .card-icon.violet { background: var(--violet-glow); border-color: rgba(184,134,11,0.1); }
     .card-icon.violet svg { stroke: var(--violet); }
     .card-icon.amber { background: var(--amber-glow); border-color: rgba(234,179,8,0.1); }
     .card-icon.amber svg { stroke: var(--amber); }
-    .card h2 { font-size: 15px; font-weight: 600; color: var(--text-bright); }
-    .card .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 22px; }
+    .card h2 { font-size: 17px; font-weight: 600; color: var(--text-bright); }
+    .card .sub { font-size: 13.5px; color: var(--text-dim); margin-bottom: 22px; }
 
     /* ── Form fields ── */
     .field { margin-bottom: 18px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .field label {
-      display: block; font-size: 11px; font-weight: 500; color: var(--text);
+      display: block; font-size: 12.5px; font-weight: 500; color: var(--text);
       font-family: var(--mono); margin-bottom: 6px; letter-spacing: 0.2px;
     }
     .field label .req { color: var(--red); }
-    .field label .hint { display: block; font-family: var(--sans); font-weight: 300; font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+    .field label .hint { display: block; font-family: var(--sans); font-weight: 300; font-size: 12.5px; color: var(--text-dim); margin-top: 1px; }
     .field input, .field select, .field textarea {
-      width: 100%; padding: 10px 13px;
+      width: 100%; padding: 11px 14px;
       background: var(--bg-input); border: 1px solid var(--border);
       border-radius: 8px; color: var(--text-bright);
-      font-family: var(--mono); font-size: 12.5px;
+      font-family: var(--mono); font-size: 14px;
       transition: all 0.15s var(--ease); outline: none;
     }
     .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
     .field input:focus, .field textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--blue-glow); }
-    .field textarea { resize: vertical; min-height: 72px; font-family: var(--sans); font-size: 12.5px; line-height: 1.5; }
+    .field textarea { resize: vertical; min-height: 72px; font-family: var(--sans); font-size: 14px; line-height: 1.5; }
     .field select { cursor: pointer; appearance: none; }
     .field .input-with-tag { display: grid; grid-template-columns: 1fr auto; gap: 0; }
     .field .input-tag {
       padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border);
       border-left: none; border-radius: 0 8px 8px 0;
-      font-family: var(--mono); font-size: 12px; color: var(--blue-light); font-weight: 500;
+      font-family: var(--mono); font-size: 13.5px; color: var(--blue-light); font-weight: 500;
       display: flex; align-items: center;
     }
     .field .input-with-tag input { border-radius: 8px 0 0 8px; }
@@ -239,11 +239,11 @@
     }
     .type-option:hover { border-color: var(--border-light); background: var(--bg-hover); }
     .type-option.selected { border-color: var(--blue); background: var(--blue-glow); }
-    .type-option svg { width: 28px; height: 28px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
+    .type-option svg { width: 32px; height: 32px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
     .type-option.selected svg { stroke: var(--blue-light); }
-    .type-option .type-label { font-size: 12px; font-weight: 600; color: var(--text-dim); transition: color 0.15s; }
+    .type-option .type-label { font-size: 14px; font-weight: 600; color: var(--text-dim); transition: color 0.15s; }
     .type-option.selected .type-label { color: var(--text-bright); }
-    .type-option .type-hint { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+    .type-option .type-hint { font-size: 11.5px; color: var(--text-muted); font-family: var(--mono); }
     .type-option.selected .type-hint { color: var(--text-dim); }
 
     /* ── Toggle ── */
@@ -254,8 +254,8 @@
       cursor: pointer; transition: all 0.15s var(--ease); user-select: none;
     }
     .toggle-row:hover { border-color: var(--border-light); }
-    .toggle-info { font-size: 12.5px; color: var(--text); }
-    .toggle-info small { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .toggle-info { font-size: 14px; color: var(--text); }
+    .toggle-info small { display: block; font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
     .toggle-track {
       width: 40px; height: 22px; border-radius: 11px;
       background: var(--border); position: relative;
@@ -271,12 +271,12 @@
 
     /* ── Buttons ── */
     .btn {
-      padding: 11px 22px; border-radius: var(--r); border: none;
-      font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+      padding: 12px 24px; border-radius: var(--r); border: none;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
       cursor: pointer; transition: all 0.15s var(--ease);
       display: inline-flex; align-items: center; gap: 8px;
     }
-    .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .btn-primary { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: var(--btn-text); box-shadow: 0 4px 18px var(--blue-glow); }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(212,175,55,0.2); }
     .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
@@ -285,7 +285,7 @@
     .btn-green:hover { filter: brightness(1.1); }
     .btn-red { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.15); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-    .btn-sm { padding: 7px 14px; font-size: 11px; }
+    .btn-sm { padding: 8px 16px; font-size: 12.5px; }
     .btn-row { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
     .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -302,7 +302,7 @@
     /* ── Status ── */
     .status-bar {
       padding: 12px 16px; border-radius: var(--r);
-      font-family: var(--mono); font-size: 12px; line-height: 1.5;
+      font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
       margin-top: 16px; display: none;
     }
     .status-bar.show { display: block; animation: pageIn 0.25s ease; }
@@ -324,8 +324,8 @@
       display: grid; place-items: center; margin-bottom: 24px;
     }
     .connect-icon svg { width: 36px; height: 36px; stroke: var(--blue-light); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-    .connect-screen h1 { font-size: 26px; font-weight: 700; color: var(--text-bright); margin-bottom: 8px; }
-    .connect-screen p { font-size: 14px; color: var(--text-dim); max-width: 400px; margin-bottom: 28px; }
+    .connect-screen h1 { font-size: 28px; font-weight: 700; color: var(--text-bright); margin-bottom: 8px; }
+    .connect-screen p { font-size: 15px; color: var(--text-dim); max-width: 420px; margin-bottom: 28px; }
 
     /* ── Stats grid ── */
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
@@ -333,16 +333,16 @@
       padding: 20px; border-radius: var(--r-lg);
       background: var(--bg-panel); border: 1px solid var(--border);
     }
-    .stat-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; }
-    .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-bright); }
-    .stat-value .unit { font-size: 12px; font-weight: 400; color: var(--blue-light); margin-left: 3px; }
+    .stat-label { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; }
+    .stat-value { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--text-bright); }
+    .stat-value .unit { font-size: 13px; font-weight: 400; color: var(--blue-light); margin-left: 3px; }
     .stat-card.highlight { border-color: rgba(34,197,94,0.15); background: rgba(34,197,94,0.03); }
     .stat-card.highlight .stat-value { color: var(--green); }
 
     /* ── Resource list ── */
     .res-list { display: flex; flex-direction: column; gap: 12px; }
     .res-item {
-      padding: 18px 20px; border-radius: var(--r-lg);
+      padding: 22px 24px; border-radius: var(--r-lg);
       background: var(--bg-panel); border: 1px solid var(--border);
       display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
       transition: border-color 0.15s var(--ease);
@@ -350,9 +350,9 @@
     .res-item:hover { border-color: var(--border-light); }
     .res-meta { display: flex; flex-direction: column; gap: 6px; }
     .res-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .res-id { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text-bright); }
+    .res-id { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--text-bright); }
     .res-badge {
-      font-family: var(--mono); font-size: 9.5px; padding: 3px 8px;
+      font-family: var(--mono); font-size: 11px; padding: 3px 9px;
       border-radius: 5px; font-weight: 500;
     }
     .res-badge.video { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(212,175,55,0.1); }
@@ -363,7 +363,7 @@
     .res-badge.per-access { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
     .res-badge.active { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
     .res-badge.paused { background: var(--red-glow); color: var(--red); border: 1px solid rgba(239,68,68,0.1); }
-    .res-stats { font-family: var(--mono); font-size: 11px; color: var(--text-dim); display: flex; gap: 16px; }
+    .res-stats { font-family: var(--mono); font-size: 13px; color: var(--text-dim); display: flex; gap: 18px; }
     .res-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* ── Inline edit panel ── */
@@ -376,14 +376,14 @@
     .res-edit .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
     .res-edit .edit-full { grid-column: 1 / -1; }
     .res-edit label {
-      display: block; font-family: var(--mono); font-size: 10px; font-weight: 500;
+      display: block; font-family: var(--mono); font-size: 12px; font-weight: 500;
       color: var(--text-dim); margin-bottom: 5px; letter-spacing: 0.2px;
     }
     .res-edit input {
-      width: 100%; padding: 8px 11px;
+      width: 100%; padding: 9px 12px;
       background: var(--bg-input); border: 1px solid var(--border);
       border-radius: 6px; color: var(--text-bright);
-      font-family: var(--mono); font-size: 12px;
+      font-family: var(--mono); font-size: 13.5px;
       outline: none; transition: border-color 0.15s;
     }
     .res-edit input:focus { border-color: var(--border-focus); }
@@ -393,7 +393,7 @@
       background: var(--bg-input); border: 1px solid var(--border);
       cursor: pointer; user-select: none;
     }
-    .res-edit .edit-toggle span { font-family: var(--mono); font-size: 12px; color: var(--text); }
+    .res-edit .edit-toggle span { font-family: var(--mono); font-size: 13.5px; color: var(--text); }
     .res-edit .mini-track {
       width: 32px; height: 18px; border-radius: 9px;
       background: var(--border); position: relative; transition: background 0.2s;
@@ -407,7 +407,7 @@
     .res-edit .edit-toggle.on .mini-track::after { transform: translateX(14px); }
     .res-edit .edit-actions { display: flex; gap: 8px; }
     .res-edit .edit-status {
-      font-family: var(--mono); font-size: 11px; margin-top: 10px;
+      font-family: var(--mono); font-size: 12.5px; margin-top: 10px;
       padding: 8px 12px; border-radius: 6px; display: none;
     }
     .res-edit .edit-status.show { display: block; }
@@ -426,7 +426,7 @@
     }
     .embed-dropdown.open { display: block; }
     .embed-dropdown .ed-title {
-      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      font-family: var(--mono); font-size: 11.5px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 1.2px;
       color: var(--text-dim); margin-bottom: 10px;
     }
@@ -436,14 +436,14 @@
     }
     .embed-dropdown .ed-row:last-child { margin-bottom: 0; }
     .embed-dropdown .ed-label {
-      font-family: var(--mono); font-size: 11px; color: var(--text);
+      font-family: var(--mono); font-size: 12.5px; color: var(--text);
       white-space: nowrap; flex-shrink: 0;
     }
     .embed-dropdown .ed-label small { color: var(--text-dim); font-weight: 300; }
     .embed-dropdown .ed-copy {
       padding: 5px 10px; border-radius: 5px;
       background: var(--bg-input); border: 1px solid var(--border);
-      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
       cursor: pointer; white-space: nowrap; transition: all 0.15s var(--ease);
     }
     .embed-dropdown .ed-copy:hover { border-color: var(--blue); color: var(--blue-light); }
@@ -451,7 +451,7 @@
     .embed-dropdown .ed-preview {
       margin-top: 10px; padding: 8px 10px;
       background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
-      font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+      font-family: var(--mono); font-size: 12px; color: var(--text-dim);
       line-height: 1.6; white-space: pre-wrap; word-break: break-all;
       max-height: 72px; overflow-y: auto; display: none;
     }
@@ -466,16 +466,16 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 14px; background: rgba(255,255,255,0.01);
       border-bottom: 1px solid var(--border);
-      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
     }
     .code-header .copy-btn {
       background: none; border: 1px solid var(--border); border-radius: 4px;
-      padding: 3px 8px; font-family: var(--mono); font-size: 12px;
+      padding: 3px 8px; font-family: var(--mono); font-size: 13px;
       color: var(--text-dim); cursor: pointer;
     }
     .code-header .copy-btn:hover { border-color: var(--blue); color: var(--blue-light); }
     .code-block pre {
-      padding: 14px; font-family: var(--mono); font-size: 11.5px;
+      padding: 14px; font-family: var(--mono); font-size: 13px;
       color: var(--text); line-height: 1.7; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
     }
 
@@ -484,7 +484,7 @@
       text-align: center; padding: 48px 20px;
       border: 1px dashed var(--border); border-radius: var(--r-lg);
     }
-    .empty-state p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+    .empty-state p { font-size: 14.5px; color: var(--text-dim); margin-bottom: 16px; }
 
     /* ── Revenue chart ── */
     .chart-wrap {
@@ -498,7 +498,7 @@
     }
     .chart-legend {
       display: flex; gap: 16px; flex-wrap: wrap;
-      font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 6px;
+      font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); margin-top: 6px;
     }
     .chart-legend .dot {
       display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px;
@@ -512,7 +512,7 @@
     }
     .filter-chip {
       padding: 5px 12px; border-radius: 6px;
-      font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+      font-family: var(--mono); font-size: 12px; font-weight: 500;
       background: var(--bg-input); border: 1px solid var(--border);
       color: var(--text-dim); cursor: pointer;
       transition: all 0.15s var(--ease); user-select: none;
@@ -524,13 +524,13 @@
     /* ── Transaction table ── */
     .tx-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     .tx-table th {
-      font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 1px;
       color: var(--text-muted); text-align: left;
       padding: 8px 10px; border-bottom: 1px solid var(--border);
     }
     .tx-table td {
-      font-family: var(--mono); font-size: 12px; color: var(--text);
+      font-family: var(--mono); font-size: 13.5px; color: var(--text);
       padding: 10px 10px; border-bottom: 1px solid rgba(28,34,51,0.5);
       vertical-align: middle;
     }
@@ -539,22 +539,22 @@
     .tx-table .addr:hover { text-decoration: underline; }
     .tx-table .amt { color: var(--text-bright); font-weight: 500; }
     .tx-table .res-tag {
-      font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      font-size: 11.5px; padding: 2px 7px; border-radius: 4px;
       background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(212,175,55,0.1);
     }
-    .tx-table .time { color: var(--text-dim); font-size: 11px; }
+    .tx-table .time { color: var(--text-dim); font-size: 12.5px; }
     .tx-empty {
       text-align: center; padding: 28px 16px;
-      font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+      font-family: var(--mono); font-size: 13.5px; color: var(--text-muted);
     }
     .tx-pagination {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 10px; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      margin-top: 10px; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
     }
     .tx-pagination button {
-      padding: 4px 10px; border-radius: 5px;
+      padding: 5px 12px; border-radius: 5px;
       background: var(--bg-input); border: 1px solid var(--border);
-      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      font-family: var(--mono); font-size: 11.5px; color: var(--text-dim);
       cursor: pointer; transition: all 0.15s var(--ease);
     }
     .tx-pagination button:hover:not(:disabled) { border-color: var(--border-light); color: var(--text); }
@@ -564,7 +564,7 @@
     .theme-toggle {
       display: flex; align-items: center; gap: 8px;
       padding: 9px 10px; border-radius: 8px;
-      font-size: 12.5px; color: var(--text-dim);
+      font-size: 14px; color: var(--text-dim);
       cursor: pointer; transition: all 0.15s var(--ease);
       border: 1px solid transparent; user-select: none;
       background: none;
@@ -830,7 +830,7 @@
               <label>Price <span class="req">*</span></label>
               <div class="input-with-tag">
                 <input type="number" id="priceInput" value="0.001" min="0.0001" step="0.0001">
-                <div class="input-tag" style="display:flex;align-items:center;gap:5px;"><img src="https://assets.apertum.io/assets/apertum-logo.svg" alt="" style="width:14px;height:14px;border-radius:50%;">APTM</div>
+                <div class="input-tag" style="display:flex;align-items:center;gap:5px;"><img src="https://assets.apertum.io/assets/apertum-logo.svg" alt="" style="width:18px;height:18px;border-radius:50%;">APTM</div>
               </div>
             </div>
 
@@ -848,8 +848,8 @@
             <div id="tokenPricingSection" style="display:none;">
               <div style="margin-top:8px; margin-bottom:14px; padding-top:16px; border-top:1px solid var(--border);">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                  <span style="font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text); letter-spacing:0.2px;">ERC-20 TOKEN PRICING</span>
-                  <span style="font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(184,134,11,0.08); color:var(--gold); border:1px solid rgba(184,134,11,0.1);">V2</span>
+                  <span style="font-family:var(--mono); font-size:12.5px; font-weight:500; color:var(--text); letter-spacing:0.2px;">ERC-20 TOKEN PRICING</span>
+                  <span style="font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:4px; background:rgba(184,134,11,0.08); color:var(--gold); border:1px solid rgba(184,134,11,0.1);">V2</span>
                 </div>
                 <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px;">
                   Optionally set prices in ERC-20 tokens. Viewers can pay with APTM or any token you price below.
@@ -887,35 +887,35 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
               <div class="stat-card">
                 <div class="stat-label">Resource ID</div>
-                <div class="stat-value" id="reviewResId" style="font-size:14px;">—</div>
+                <div class="stat-value" id="reviewResId" style="font-size:16px;">—</div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Content Type</div>
-                <div class="stat-value" id="reviewType" style="font-size:14px;">—</div>
+                <div class="stat-value" id="reviewType" style="font-size:16px;">—</div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Price</div>
-                <div class="stat-value" id="reviewPrice" style="font-size:14px;">—</div>
+                <div class="stat-value" id="reviewPrice" style="font-size:16px;">—</div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Access</div>
-                <div class="stat-value" id="reviewAccess" style="font-size:14px;">—</div>
+                <div class="stat-value" id="reviewAccess" style="font-size:16px;">—</div>
               </div>
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Content Source</div>
-                <div class="stat-value" id="reviewYtId" style="font-size:14px;word-break:break-all;">—</div>
+                <div class="stat-value" id="reviewYtId" style="font-size:16px;word-break:break-all;">—</div>
               </div>
               <div class="stat-card" id="reviewDescCard" style="grid-column:1/-1; display:none;">
                 <div class="stat-label">Description</div>
-                <div class="stat-value" id="reviewDesc" style="font-size:13px;font-weight:400;color:var(--text);line-height:1.5;">—</div>
+                <div class="stat-value" id="reviewDesc" style="font-size:14.5px;font-weight:400;color:var(--text);line-height:1.5;">—</div>
               </div>
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Estimated Gas Cost</div>
-                <div class="stat-value" id="reviewGas" style="font-size:14px;">Estimating...</div>
+                <div class="stat-value" id="reviewGas" style="font-size:16px;">Estimating...</div>
               </div>
               <div class="stat-card" id="reviewTokenPricesCard" style="grid-column:1/-1; display:none;">
                 <div class="stat-label">Token Prices (V2)</div>
-                <div class="stat-value" id="reviewTokenPrices" style="font-size:13px;">—</div>
+                <div class="stat-value" id="reviewTokenPrices" style="font-size:14.5px;">—</div>
               </div>
             </div>
 
@@ -933,7 +933,7 @@
 
             <!-- Embed codes shown after publish -->
             <div id="embedOutput" style="display:none; margin-top:24px;">
-              <h2 style="font-size:14px; color:var(--text-bright); margin-bottom:12px;">Your Embed Codes</h2>
+              <h2 style="font-size:16px; color:var(--text-bright); margin-bottom:12px;">Your Embed Codes</h2>
               <div class="code-block">
                 <div class="code-header"><span>Hosted Link</span><button class="copy-btn" onclick="copyText('embedLink')">Copy</button></div>
                 <pre id="embedLink"></pre>
@@ -999,7 +999,7 @@
             <span class="filter-chip" data-range="90" onclick="setChartRange(90,this)">90d</span>
             <span class="filter-chip" data-range="0" onclick="setChartRange(0,this)">All</span>
             <div class="filter-spacer"></div>
-            <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);" id="chartTxCount"></span>
+            <span style="font-family:var(--mono);font-size:11.5px;color:var(--text-dim);" id="chartTxCount"></span>
           </div>
           <div class="chart-wrap" id="chartWrap">
             <div class="chart-empty" id="chartEmpty">Loading event logs...</div>
@@ -1017,7 +1017,7 @@
             <div class="card-icon amber"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
             <h2>Recent Transactions</h2>
           </div>
-          <p class="sub">Individual payments from event logs. <button class="btn btn-sm btn-secondary" onclick="exportCSV()" id="csvBtn" style="margin-left:6px;padding:4px 10px;font-size:10px;" disabled>
+          <p class="sub">Individual payments from event logs. <button class="btn btn-sm btn-secondary" onclick="exportCSV()" id="csvBtn" style="margin-left:6px;padding:5px 12px;font-size:11.5px;" disabled>
             <svg viewBox="0 0 24 24" style="width:11px;height:11px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Export CSV
           </button></p>
@@ -1460,6 +1460,9 @@ function enterDashboard() {
   document.getElementById('vaultLink').href = EXPLORER + '/address/' + vaultAddress;
   document.getElementById('explorerLink').href = EXPLORER + '/address/' + vaultAddress;
 
+  // Load content count badge immediately
+  loadContentCount();
+
   // Detect V2 and load tokens in background
   detectVaultVersion().then(v => {
     if (v >= 2) {
@@ -1539,8 +1542,8 @@ function parseContentInput() {
             <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
           <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:12px;color:var(--text-bright);font-weight:500;">IPFS Video</span>
-            <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${displayCid}</span>
+            <span style="font-size:14px;color:var(--text-bright);font-weight:500;">IPFS Video</span>
+            <span style="font-size:12.5px;color:var(--text-dim);font-family:var(--mono);">${displayCid}</span>
           </div>
         </div>`;
       const cidPart = source.value.replace('ipfs://', '').replace(/^https?:\/\/.*\/ipfs\//, '').slice(0, 8).toLowerCase();
@@ -1555,8 +1558,8 @@ function parseContentInput() {
             <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
           <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Direct Video URL</span>
-            <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${urlHost}</span>
+            <span style="font-size:14px;color:var(--text-bright);font-weight:500;">Direct Video URL</span>
+            <span style="font-size:12.5px;color:var(--text-dim);font-family:var(--mono);">${urlHost}</span>
           </div>
         </div>`;
       const slug = urlHost.replace(/\./g, '-').slice(0, 8);
@@ -1583,8 +1586,8 @@ function parseContentInput() {
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         <div style="display:flex;flex-direction:column;gap:2px;">
-          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Article / Text Content</span>
-          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${shortRef}</span>
+          <span style="font-size:14px;color:var(--text-bright);font-weight:500;">Article / Text Content</span>
+          <span style="font-size:12.5px;color:var(--text-dim);font-family:var(--mono);">${shortRef}</span>
         </div>
       </div>`;
     if (!resInput.value) {
@@ -1677,13 +1680,13 @@ function addStep(step) {
         <div style="display:flex;align-items:center;justify-content:center;height:100%;background:#0a0b0d;border-radius:10px;padding:16px;">
           <div style="text-align:center;">
             <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:${t.color};fill:none;stroke-width:1.5;margin-bottom:8px;">${t.icon}</svg>
-            <div style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${label}</div>
+            <div style="font-size:12.5px;color:var(--text-dim);font-family:var(--mono);">${label}</div>
           </div>
         </div>`;
     }
     document.getElementById('reviewResId').textContent = document.getElementById('resId').value;
     document.getElementById('reviewType').textContent = selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1);
-    document.getElementById('reviewPrice').innerHTML = '<img src="' + APTM_ICON + '" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">' + document.getElementById('priceInput').value + ' APTM';
+    document.getElementById('reviewPrice').innerHTML = '<img src="' + APTM_ICON + '" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:4px;">' + document.getElementById('priceInput').value + ' APTM';
     document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
     document.getElementById('reviewYtId').textContent = parsedContentRef.length > 40 ? parsedContentRef.slice(0, 37) + '...' : parsedContentRef;
 
@@ -1708,8 +1711,8 @@ function addStep(step) {
       document.getElementById('reviewTokenPrices').innerHTML = tokenPriceList
         .map(tp => {
           const meta = getTokenMeta(tp.token, tp.symbol);
-          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
-          return `${icon}${tp.price} <span class="unit" style="font-size:11px;color:var(--gold);margin-left:2px;">${tp.symbol}</span>`;
+          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:4px;">` : '';
+          return `${icon}${tp.price} <span class="unit" style="font-size:13px;color:var(--gold);margin-left:2px;">${tp.symbol}</span>`;
         })
         .join(' &nbsp;·&nbsp; ');
     } else {
@@ -1747,11 +1750,11 @@ function renderTokenPricingUI() {
   for (const tok of allowedTokens) {
     const meta = getTokenMeta(tok.address, tok.symbol);
     const iconHtml = meta && meta.icon
-      ? `<img src="${meta.icon}" alt="${tok.symbol}" style="width:18px;height:18px;border-radius:50%;flex-shrink:0;">`
-      : `<div style="width:18px;height:18px;border-radius:50%;background:rgba(184,134,11,0.1);border:1px solid rgba(184,134,11,0.15);display:grid;place-items:center;flex-shrink:0;font-size:8px;font-weight:700;color:var(--gold);font-family:var(--mono);">${tok.symbol.charAt(0)}</div>`;
+      ? `<img src="${meta.icon}" alt="${tok.symbol}" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;">`
+      : `<div style="width:22px;height:22px;border-radius:50%;background:rgba(184,134,11,0.1);border:1px solid rgba(184,134,11,0.15);display:grid;place-items:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--gold);font-family:var(--mono);">${tok.symbol.charAt(0)}</div>`;
     const displayName = meta && meta.name ? meta.name : tok.symbol;
     const tagHtml = meta && meta.icon
-      ? `<div class="input-tag" style="gap:5px;color:var(--gold);display:flex;align-items:center;"><img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">${tok.symbol}</div>`
+      ? `<div class="input-tag" style="gap:5px;color:var(--gold);display:flex;align-items:center;"><img src="${meta.icon}" alt="" style="width:18px;height:18px;border-radius:50%;">${tok.symbol}</div>`
       : `<div class="input-tag" style="color:var(--gold);">${tok.symbol}</div>`;
 
     html += `
@@ -2008,23 +2011,30 @@ async function publishResource() {
       }
     }
 
-    // Show embed codes
-    const embedEl = document.getElementById('embedOutput');
-    embedEl.style.display = 'block';
-
-    const hostedUrl = `${window.location.origin}/watch.html?vault=${vaultAddress}&resource=${resourceId}`;
-    document.getElementById('embedLink').textContent = hostedUrl;
-
-    document.getElementById('embedIframe').textContent =
-      `<iframe src="${hostedUrl}"\n  width="640" height="400" frameborder="0"\n  allow="ethereum *">\n</iframe>`;
-
-    document.getElementById('embedScript').textContent =
-      `<div class="a402-content"\n  data-vault="${vaultAddress}"\n  data-resource="${resourceId}">\n</div>\n<script src="https://cdn.a402.io/embed.js"><\/script>`;
-
-    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Published!';
-
     // Update content count badge
     loadContentCount();
+
+    // Reset the Add Content wizard for next use
+    document.getElementById('embedOutput').style.display = 'none';
+    document.getElementById('resId').value = '';
+    document.getElementById('priceInput').value = '';
+    const descEl = document.getElementById('descInput');
+    if (descEl) descEl.value = '';
+    const ytEl = document.getElementById('ytUrl');
+    if (ytEl) ytEl.value = '';
+    const thumbEl = document.getElementById('thumbPreview');
+    if (thumbEl) thumbEl.innerHTML = '<div class="placeholder">—</div>';
+    parsedContentRef = '';
+    selectedContentType = 'video';
+    document.querySelectorAll('.type-option').forEach(o => o.classList.toggle('selected', o.dataset.type === 'video'));
+    document.getElementById('lifetimeToggle').classList.remove('on');
+    addStep(0);
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Publish On-Chain';
+    setStatus('publishStatus', '', '');
+
+    // Navigate to My Content (this also triggers loadMyContent)
+    showPage('my-content');
 
   } catch (err) {
     setStatus('publishStatus', 'error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
@@ -2093,28 +2103,28 @@ async function loadMyContent() {
             <div class="res-meta">
               <div class="res-title-row">
                 <span class="res-id">${item.resourceId}</span>
-                <span class="res-badge ${typeBadgeClass}"><svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:3px;">${typeIconSvg}</svg>${item.contentType}</span>
+                <span class="res-badge ${typeBadgeClass}"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:3px;">${typeIconSvg}</svg>${item.contentType}</span>
                 <span class="res-badge ${accessClass}">${accessLabel}</span>
                 <span class="res-badge ${statusClass}">${statusLabel}</span>
               </div>
               <div class="res-stats">
-                <span><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:2px;">Price: ${priceAptm} APTM</span>
+                <span><img src="${APTM_ICON}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:3px;">Price: ${priceAptm} APTM</span>
                 <span>Payments: ${item.payments}</span>
-                <span><img src="${APTM_ICON}" alt="" style="width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:2px;">Revenue: ${rev} APTM</span>
+                <span><img src="${APTM_ICON}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:3px;">Revenue: ${rev} APTM</span>
               </div>
               <div class="res-stats token-prices-row" id="tokenPrices-${item.resourceId}" style="margin-top:2px;"></div>
-              ${item.description ? `<div style="font-size:12px;color:var(--text-dim);margin-top:6px;line-height:1.5;max-width:520px;">${item.description.length > 160 ? item.description.slice(0, 157) + '...' : item.description}</div>` : ''}
+              ${item.description ? `<div style="font-size:13.5px;color:var(--text-dim);margin-top:6px;line-height:1.5;max-width:520px;">${item.description.length > 160 ? item.description.slice(0, 157) + '...' : item.description}</div>` : ''}
             </div>
             <div class="res-actions">
               <button class="btn btn-sm btn-secondary" onclick="openEdit('${safeId}', ${item.price}, ${item.lifetime})">
-                <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Edit
               </button>
               <div class="embed-wrap">
                 <button class="btn btn-sm btn-secondary" onclick="toggleEmbedDropdown('${safeId}', event)">
-                  <svg viewBox="0 0 24 24" style="width:12px;height:12px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                   Embed
-                  <svg viewBox="0 0 24 24" style="width:10px;height:10px;margin-left:-2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                  <svg viewBox="0 0 24 24" style="width:12px;height:12px;margin-left:-2px;"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="embed-dropdown" id="embedDrop-${item.resourceId}">
                   <div class="ed-title">Embed & Integration</div>
@@ -2142,7 +2152,7 @@ async function loadMyContent() {
           <div class="res-edit" id="edit-${item.resourceId}">
             <div class="edit-grid">
               <div>
-                <label style="display:flex;align-items:center;gap:4px;"><img src="${APTM_ICON}" alt="" style="width:14px;height:14px;border-radius:50%;">Price (APTM)</label>
+                <label style="display:flex;align-items:center;gap:4px;"><img src="${APTM_ICON}" alt="" style="width:18px;height:18px;border-radius:50%;">Price (APTM)</label>
                 <input type="number" id="editPrice-${item.resourceId}" value="${priceAptm}" min="0.0001" step="0.0001">
               </div>
               <div>
@@ -2157,14 +2167,14 @@ async function loadMyContent() {
                 <input type="text" id="editRef-${item.resourceId}" placeholder="Loading..." disabled>
               </div>
               <div class="edit-full" ${vaultVersion >= 3 ? '' : 'style="display:none;"'}>
-                <label>Description <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V3</span></label>
-                <textarea id="editDesc-${item.resourceId}" rows="2" style="width:100%;padding:10px 13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-bright);font-family:var(--sans);font-size:12.5px;line-height:1.5;resize:vertical;min-height:56px;outline:none;"
+                <label>Description <span style="font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V3</span></label>
+                <textarea id="editDesc-${item.resourceId}" rows="2" style="width:100%;padding:10px 13px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-bright);font-family:var(--sans);font-size:14px;line-height:1.5;resize:vertical;min-height:56px;outline:none;"
                   placeholder="Short description of this content...">${item.description || ''}</textarea>
               </div>
               <div class="edit-full" id="editTokenSection-${item.resourceId}" style="display:none;">
                 <label style="display:flex;align-items:center;gap:6px;">
                   Token Prices
-                  <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V2</span>
+                  <span style="font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.1);">V2</span>
                 </label>
                 <div id="editTokenInputs-${item.resourceId}"></div>
               </div>
@@ -2271,7 +2281,7 @@ async function loadTokenPricesForResource(resourceId) {
       row.innerHTML = accepted
         .map(t => {
           const meta = getTokenMeta(t.token || t.address, t.symbol);
-          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin-right:3px;">` : '';
+          const icon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:4px;">` : '';
           return `<span style="color:var(--gold);">${icon}${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`;
         })
         .join('');
@@ -2287,19 +2297,19 @@ async function loadTokenPricesForResource(resourceId) {
         const existing = accepted.find(a => a.token.toLowerCase() === tok.address.toLowerCase());
         const currentVal = existing ? formatTokenAmount(existing.price, tok.decimals) : '';
         const meta = getTokenMeta(tok.address, tok.symbol);
-        const tagIcon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:14px;height:14px;border-radius:50%;">` : '';
+        const tagIcon = meta && meta.icon ? `<img src="${meta.icon}" alt="" style="width:18px;height:18px;border-radius:50%;">` : '';
         const displayName = meta && meta.name ? meta.name : tok.symbol;
         html += `
           <div style="margin-bottom:6px;">
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-dim);margin-bottom:3px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-dim);margin-bottom:3px;">
               ${tagIcon ? tagIcon : ''}<span>${displayName}</span>
             </label>
             <div style="display:grid;grid-template-columns:1fr auto;gap:0;">
               <input type="number" id="editTokPrice-${resourceId}-${tok.address}"
                 value="${currentVal}" placeholder="e.g. 1.00" min="0" step="any"
                 data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}"
-                style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:12px;outline:none;">
-              <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:500;display:flex;align-items:center;gap:5px;">${tagIcon}${tok.symbol}</div>
+                style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:13.5px;outline:none;">
+              <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:12.5px;color:var(--gold);font-weight:500;display:flex;align-items:center;gap:5px;">${tagIcon}${tok.symbol}</div>
             </div>
           </div>`;
       }
@@ -2381,11 +2391,11 @@ async function loadRevenue() {
           </div>
           <div style="text-align:right;">
             <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-bright);">${fromWei(item.revenue)} APTM</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">revenue</div>
+            <div style="font-family:var(--mono);font-size:11.5px;color:var(--text-dim);">revenue</div>
           </div>
           <div style="text-align:right;">
             <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text-bright);">${item.payments}</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">payments</div>
+            <div style="font-family:var(--mono);font-size:11.5px;color:var(--text-dim);">payments</div>
           </div>
         </div>`;
     }

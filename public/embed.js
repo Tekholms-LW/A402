@@ -603,86 +603,6 @@
         animation: a402pulse 2.5s ease infinite;
       }
 
-      /* ── Custom player controls ── */
-      .player-wrap { position: relative; width: 100%; height: 100%; }
-      .player-wrap iframe { width: 100%; height: 100%; border: none; pointer-events: none; }
-      .player-wrap video { width: 100%; height: 100%; background: #000; object-fit: contain; }
-      .player-click-zone { position: absolute; inset: 0; z-index: 2; cursor: pointer; }
-      .player-controls {
-        position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
-        background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
-        padding: 32px 14px 12px; display: flex; flex-direction: column; gap: 8px;
-        opacity: 0; transition: opacity 0.25s ease;
-      }
-      .player-wrap:hover .player-controls,
-      .player-wrap.paused .player-controls { opacity: 1; }
-      .player-controls.force-show { opacity: 1; }
-
-      .seek-row { display: flex; align-items: center; gap: 0; width: 100%; }
-      .seek-bar {
-        -webkit-appearance: none; appearance: none;
-        width: 100%; height: 4px; border-radius: 2px;
-        background: rgba(255,255,255,0.15); outline: none; cursor: pointer;
-        transition: height 0.15s ease;
-      }
-      .seek-bar:hover { height: 6px; }
-      .seek-bar::-webkit-slider-thumb {
-        -webkit-appearance: none; appearance: none;
-        width: 14px; height: 14px; border-radius: 50%;
-        background: var(--blue-light); border: 2px solid #fff;
-        cursor: pointer; box-shadow: 0 0 6px rgba(0,0,0,0.4);
-        transition: transform 0.15s ease;
-      }
-      .seek-bar:hover::-webkit-slider-thumb { transform: scale(1.2); }
-      .seek-bar::-moz-range-thumb {
-        width: 14px; height: 14px; border-radius: 50%;
-        background: var(--blue-light); border: 2px solid #fff;
-        cursor: pointer;
-      }
-
-      .ctrl-row { display: flex; align-items: center; gap: 10px; }
-      .ctrl-btn {
-        background: none; border: none; cursor: pointer; padding: 4px;
-        display: grid; place-items: center; border-radius: 4px;
-        transition: background 0.15s;
-      }
-      .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
-      .ctrl-btn svg { width: 20px; height: 20px; fill: #fff; stroke: none; }
-      .ctrl-btn.small svg { width: 18px; height: 18px; }
-
-      .time-display {
-        font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.7);
-        user-select: none; white-space: nowrap;
-      }
-
-      .vol-group { display: flex; align-items: center; gap: 4px; }
-      .vol-bar {
-        -webkit-appearance: none; appearance: none;
-        width: 60px; height: 3px; border-radius: 2px;
-        background: rgba(255,255,255,0.2); outline: none; cursor: pointer;
-      }
-      .vol-bar::-webkit-slider-thumb {
-        -webkit-appearance: none; width: 10px; height: 10px;
-        border-radius: 50%; background: #fff; cursor: pointer;
-      }
-      .vol-bar::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
-
-      .ctrl-spacer { flex: 1; }
-
-      /* Big center play button when paused */
-      .center-play {
-        position: absolute; top: 50%; left: 50%; z-index: 4;
-        transform: translate(-50%, -50%);
-        width: 64px; height: 64px; border-radius: 50%;
-        background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.15);
-        display: none; place-items: center; cursor: pointer;
-        backdrop-filter: blur(8px);
-        transition: transform 0.15s ease, background 0.15s ease;
-      }
-      .center-play:hover { background: rgba(212,175,55,0.6); transform: translate(-50%, -50%) scale(1.08); }
-      .center-play svg { width: 28px; height: 28px; fill: #fff; stroke: none; margin-left: 3px; }
-      .player-wrap.paused .center-play { display: grid; }
-
       /* ── Spinner ── */
       .spinner {
         width: 14px; height: 14px;
@@ -727,12 +647,6 @@
       this.vaultVersion = 1;
       this.acceptedTokens = []; // [{token, symbol, decimals, price}]
       this.selectedPayment = 'native'; // 'native' or token address
-
-      // Player state (YouTube custom player)
-      this.ytPlayer = null;
-      this.html5Player = null;
-      this.seekInterval = null;
-      this.isSeeking = false;
 
       // Shadow DOM
       this.shadow = hostEl.attachShadow({ mode: 'open' });
@@ -891,7 +805,7 @@
         </div>
         <div class="a402-footer">
           <span><span class="chain-dot"></span>Apertum · A402</span>
-          <span></span>
+          <a href="${EXPLORER}/address/${this.vault}" target="_blank" rel="noopener">View Vault</a>
         </div>
       `;
 
@@ -1181,14 +1095,40 @@
       if (cType === 'video' || (!['article','file','api'].includes(cType))) {
         // ── Video renderer ──
         if (source.type === 'youtube') {
-          this.buildYouTubePlayer(source.value, area);
+          const iframe = document.createElement('iframe');
+          iframe.src = `https://www.youtube.com/embed/${source.value}?autoplay=1&rel=0&modestbranding=1`;
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          iframe.allowFullscreen = true;
+          iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;';
+          area.appendChild(iframe);
         } else if (source.type === 'ipfs') {
+          // IPFS video — resolve through gateway
           const url = source.value.startsWith('ipfs://')
             ? 'https://ipfs.io/ipfs/' + source.value.replace('ipfs://', '')
             : source.value;
-          this.buildHTML5Player(url, area);
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.autoplay = true;
+          video.controlsList = 'nodownload noplaybackrate';
+          video.disablePictureInPicture = true;
+          video.setAttribute('oncontextmenu', 'return false;');
+          video.draggable = false;
+          video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
+          video.addEventListener('contextmenu', e => e.preventDefault());
+          area.appendChild(video);
         } else if (source.type === 'direct') {
-          this.buildHTML5Player(source.value, area);
+          const video = document.createElement('video');
+          video.src = source.value;
+          video.controls = true;
+          video.autoplay = true;
+          video.controlsList = 'nodownload noplaybackrate';
+          video.disablePictureInPicture = true;
+          video.setAttribute('oncontextmenu', 'return false;');
+          video.draggable = false;
+          video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
+          video.addEventListener('contextmenu', e => e.preventDefault());
+          area.appendChild(video);
         }
 
       } else if (cType === 'article') {
@@ -1330,295 +1270,6 @@
         unlockedBar.style.display = 'flex';
         this.shadow.getElementById('unlockedLabel').textContent =
           this.resource.lifetime ? 'Lifetime Access' : 'Access Granted';
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  YOUTUBE CUSTOM PLAYER (full controls, no YouTube UI exposed)
-    // ═══════════════════════════════════════════════════════════════
-
-    buildYouTubePlayer(videoId, area) {
-      const widget = this;
-      const wrap = document.createElement('div');
-      wrap.className = 'player-wrap paused';
-      wrap.addEventListener('contextmenu', e => e.preventDefault());
-
-      // Use unique IDs scoped to this widget instance
-      const uid = 'a402_' + Math.random().toString(36).slice(2, 8);
-
-      wrap.innerHTML = `
-        <div id="${uid}_yt"></div>
-        <div class="player-click-zone" id="${uid}_click"></div>
-        <div class="center-play" id="${uid}_center">
-          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
-        </div>
-        <div class="player-controls force-show" id="${uid}_controls">
-          <div class="seek-row">
-            <input type="range" class="seek-bar" id="${uid}_seek" min="0" max="1000" value="0">
-          </div>
-          <div class="ctrl-row">
-            <button class="ctrl-btn" id="${uid}_pp" title="Play/Pause">
-              <svg viewBox="0 0 24 24" id="${uid}_playIcon"><polygon points="5,3 19,12 5,21"/></svg>
-              <svg viewBox="0 0 24 24" id="${uid}_pauseIcon" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            </button>
-            <div class="vol-group">
-              <button class="ctrl-btn small" id="${uid}_volBtn" title="Mute/Unmute">
-                <svg viewBox="0 0 24 24" id="${uid}_volOn"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <svg viewBox="0 0 24 24" id="${uid}_volOff" style="display:none;"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
-              </button>
-              <input type="range" class="vol-bar" id="${uid}_vol" min="0" max="100" value="80">
-            </div>
-            <span class="time-display" id="${uid}_time">0:00 / 0:00</span>
-            <div class="ctrl-spacer"></div>
-            <button class="ctrl-btn small" id="${uid}_fs" title="Fullscreen">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-            </button>
-          </div>
-        </div>
-      `;
-      area.appendChild(wrap);
-
-      // Helper to get elements inside shadow DOM
-      const $ = (id) => widget.shadow.getElementById(id);
-
-      function fmtTime(s) {
-        const m = Math.floor(s / 60);
-        const sec = Math.floor(s % 60);
-        return m + ':' + sec.toString().padStart(2, '0');
-      }
-
-      function togglePlayPause() {
-        if (!widget.ytPlayer) return;
-        const s = widget.ytPlayer.getPlayerState();
-        if (s === YT.PlayerState.PLAYING) widget.ytPlayer.pauseVideo();
-        else widget.ytPlayer.playVideo();
-      }
-
-      function updateSeek() {
-        if (!widget.ytPlayer || widget.isSeeking || typeof widget.ytPlayer.getDuration !== 'function') return;
-        const dur = widget.ytPlayer.getDuration();
-        const cur = widget.ytPlayer.getCurrentTime();
-        if (dur > 0) {
-          const seekBar = $(`${uid}_seek`);
-          if (seekBar) {
-            seekBar.value = (cur / dur) * 1000;
-            const pct = (cur / dur) * 100;
-            seekBar.style.background = `linear-gradient(to right, var(--blue-light) ${pct}%, rgba(255,255,255,0.15) ${pct}%)`;
-          }
-          const timeEl = $(`${uid}_time`);
-          if (timeEl) timeEl.textContent = fmtTime(cur) + ' / ' + fmtTime(dur);
-        }
-      }
-
-      function updateVolIcon(vol) {
-        const on = $(`${uid}_volOn`);
-        const off = $(`${uid}_volOff`);
-        if (on) on.style.display = vol > 0 ? 'block' : 'none';
-        if (off) off.style.display = vol > 0 ? 'none' : 'block';
-      }
-
-      function onPlayerReady(e) {
-        const player = e.target;
-        player.setVolume(80);
-
-        setTimeout(() => {
-          const ctrl = $(`${uid}_controls`);
-          if (ctrl) ctrl.classList.remove('force-show');
-        }, 2000);
-
-        widget.seekInterval = setInterval(updateSeek, 250);
-
-        const clickZone = $(`${uid}_click`);
-        const centerPlay = $(`${uid}_center`);
-        const ppBtn = $(`${uid}_pp`);
-        if (clickZone) clickZone.addEventListener('click', togglePlayPause);
-        if (centerPlay) centerPlay.addEventListener('click', togglePlayPause);
-        if (ppBtn) ppBtn.addEventListener('click', togglePlayPause);
-
-        const seekBar = $(`${uid}_seek`);
-        if (seekBar) {
-          seekBar.addEventListener('input', () => {
-            widget.isSeeking = true;
-            const duration = widget.ytPlayer.getDuration();
-            const time = (seekBar.value / 1000) * duration;
-            const timeEl = $(`${uid}_time`);
-            if (timeEl) timeEl.textContent = fmtTime(time) + ' / ' + fmtTime(duration);
-          });
-          seekBar.addEventListener('change', () => {
-            const duration = widget.ytPlayer.getDuration();
-            widget.ytPlayer.seekTo((seekBar.value / 1000) * duration, true);
-            widget.isSeeking = false;
-          });
-        }
-
-        const volBar = $(`${uid}_vol`);
-        if (volBar) {
-          volBar.addEventListener('input', (e) => {
-            const vol = parseInt(e.target.value);
-            widget.ytPlayer.setVolume(vol);
-            widget.ytPlayer.unMute();
-            updateVolIcon(vol);
-          });
-        }
-
-        const volBtn = $(`${uid}_volBtn`);
-        if (volBtn) {
-          volBtn.addEventListener('click', () => {
-            if (widget.ytPlayer.isMuted()) { widget.ytPlayer.unMute(); updateVolIcon(widget.ytPlayer.getVolume()); }
-            else { widget.ytPlayer.mute(); updateVolIcon(0); }
-          });
-        }
-
-        const fsBtn = $(`${uid}_fs`);
-        if (fsBtn) {
-          fsBtn.addEventListener('click', () => {
-            if (document.fullscreenElement) document.exitFullscreen();
-            else wrap.requestFullscreen().catch(() => {});
-          });
-        }
-      }
-
-      function onPlayerStateChange(e) {
-        if (e.data === YT.PlayerState.PLAYING) {
-          wrap.classList.remove('paused');
-          const pi = $(`${uid}_playIcon`);
-          const pa = $(`${uid}_pauseIcon`);
-          if (pi) pi.style.display = 'none';
-          if (pa) pa.style.display = 'block';
-        } else if (e.data === YT.PlayerState.PAUSED) {
-          wrap.classList.add('paused');
-          const pi = $(`${uid}_playIcon`);
-          const pa = $(`${uid}_pauseIcon`);
-          if (pi) pi.style.display = 'block';
-          if (pa) pa.style.display = 'none';
-        } else if (e.data === YT.PlayerState.ENDED) {
-          wrap.classList.add('paused');
-          const pi = $(`${uid}_playIcon`);
-          const pa = $(`${uid}_pauseIcon`);
-          if (pi) pi.style.display = 'block';
-          if (pa) pa.style.display = 'none';
-          // If not lifetime access, relock after video ends
-          if (!widget.resource.lifetime) {
-            if (widget.seekInterval) clearInterval(widget.seekInterval);
-            widget.relock();
-          }
-        }
-      }
-
-      // Load YouTube IFrame API if not already loaded
-      function createPlayer() {
-        // YT.Player can target an element directly (not just an ID string)
-        const container = $(`${uid}_yt`);
-        widget.ytPlayer = new YT.Player(container, {
-          videoId: videoId,
-          width: '100%',
-          height: '100%',
-          playerVars: {
-            autoplay: 1, controls: 0, rel: 0, modestbranding: 1,
-            showinfo: 0, iv_load_policy: 3, disablekb: 1, playsinline: 1,
-          },
-          events: { onReady: onPlayerReady, onStateChange: onPlayerStateChange },
-        });
-      }
-
-      if (window.YT && window.YT.Player) {
-        // API already loaded
-        createPlayer();
-      } else {
-        // Load the API and queue this widget's player creation
-        if (!window._a402YTCallbacks) window._a402YTCallbacks = [];
-        window._a402YTCallbacks.push(createPlayer);
-
-        if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-          const tag = document.createElement('script');
-          tag.src = 'https://www.youtube.com/iframe_api';
-          document.head.appendChild(tag);
-
-          window.onYouTubeIframeAPIReady = function () {
-            window._a402YTCallbacks.forEach(cb => cb());
-            window._a402YTCallbacks = [];
-          };
-        }
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  HTML5 VIDEO PLAYER (IPFS / Direct URL — with protection)
-    // ═══════════════════════════════════════════════════════════════
-
-    buildHTML5Player(videoUrl, area) {
-      const widget = this;
-      const wrap = document.createElement('div');
-      wrap.className = 'player-wrap';
-      wrap.addEventListener('contextmenu', e => e.preventDefault());
-
-      const video = document.createElement('video');
-      video.src = videoUrl;
-      video.autoplay = true;
-      video.controls = true;
-      video.playsInline = true;
-      video.controlsList = 'nodownload noplaybackrate';
-      video.disablePictureInPicture = true;
-      video.draggable = false;
-      video.style.cssText = 'width:100%;height:100%;background:#000;object-fit:contain;';
-      video.addEventListener('contextmenu', e => e.preventDefault());
-
-      wrap.appendChild(video);
-      wrap.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;';
-      area.appendChild(wrap);
-
-      this.html5Player = video;
-
-      // Prevent drag-saving
-      video.addEventListener('dragstart', e => e.preventDefault());
-      wrap.addEventListener('dragstart', e => e.preventDefault());
-
-      // If not lifetime access, relock after video ends
-      if (!this.resource.lifetime) {
-        video.addEventListener('ended', () => {
-          this.relock();
-        });
-      }
-
-      video.addEventListener('error', () => {
-        wrap.innerHTML = `
-          <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;padding:24px;text-align:center;">
-            <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--text-dim);fill:none;stroke-width:1.5;margin-bottom:12px;">
-              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <div style="font-size:14px;color:var(--text-bright);margin-bottom:6px;">Video failed to load</div>
-            <div style="font-size:12px;color:var(--text-dim);">The source may be temporarily unavailable or the format may not be supported by your browser.</div>
-          </div>
-        `;
-      });
-    }
-
-    // ── Relock: reset widget to locked/pay state after video ends (non-lifetime) ──
-    relock() {
-      this.state = 'locked';
-
-      // Clean up players
-      if (this.ytPlayer) {
-        try { this.ytPlayer.destroy(); } catch {}
-        this.ytPlayer = null;
-      }
-      if (this.html5Player) {
-        try { this.html5Player.pause(); this.html5Player.src = ''; } catch {}
-        this.html5Player = null;
-      }
-      if (this.seekInterval) {
-        clearInterval(this.seekInterval);
-        this.seekInterval = null;
-      }
-      this.isSeeking = false;
-
-      // Re-render the full locked UI
-      this.render();
-
-      // If wallet is still connected, auto-show the pay button
-      if (this.userAddress) {
-        this.showPayButton();
-        this.setStatus('info', 'Video ended — pay again to re-watch.');
       }
     }
 
