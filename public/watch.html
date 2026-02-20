@@ -221,6 +221,14 @@
       display: flex; align-items: center; justify-content: center;
       background: var(--bg-card);
     }
+
+    /* ── Download protection ── */
+    video::-webkit-media-controls-download-button { display: none !important; }
+    video::-webkit-media-controls-overflow-button { display: none !important; }
+    video::-internal-media-controls-download-button { display: none !important; }
+    video { -webkit-user-drag: none; user-drag: none; }
+    .video-area { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
   </style>
 </head>
 <body>
@@ -262,6 +270,10 @@
           <span class="price-label" style="color:var(--green);">Total Cost</span>
           <span class="price-value" id="totalDisplay" style="font-size:18px; color:var(--green);">—<span class="cur" style="color:var(--green);">APTM</span></span>
         </div>
+        <div id="tokenSelectorRow" style="display:none; margin-bottom:14px;">
+          <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px;">Pay With</div>
+          <div id="tokenButtons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
         <div class="chips" id="chipRow"></div>
         <button class="btn btn-primary" id="actionBtn" onclick="handleAction()">
           <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
@@ -290,6 +302,7 @@ const RPC = 'https://rpc.apertum.io/ext/bc/YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9
 const CHAIN_HEX = '0xae2';
 const EXPLORER = 'https://explorer.apertum.io';
 const IPFS_GATEWAY = 'https://ipfs.io';
+const FACTORY = '0x88408192d8548CD864f58E7d3c6f97fD577d4451';
 
 // Parse URL params
 const params = new URLSearchParams(window.location.search);
@@ -299,6 +312,10 @@ const RESOURCE = params.get('resource');
 let userAddress = null;
 let resourceConfig = null; // { price, lifetime, active, exists, contentType, contentRef }
 let state = 'disconnected';
+let vaultVersion = 1;
+let acceptedTokens = [];   // [{token, symbol, decimals, price}]
+let selectedPayment = 'native'; // 'native' or token address
+
 
 function sel(sig) { return keccak256(sig).slice(0, 8); }
 function pad32(h) { return h.replace('0x','').padStart(64,'0'); }
@@ -307,6 +324,42 @@ function padUint(n) { return BigInt(n).toString(16).padStart(64,'0'); }
 function encStr(s) { const b=new TextEncoder().encode(s); let h=''; for(const c of b) h+=c.toString(16).padStart(2,'0'); return padUint(b.length)+h.padEnd(Math.ceil(h.length/64)*64,'0'); }
 function hexStr(h) { let s=''; for(let i=0;i<h.length;i+=2) s+=String.fromCharCode(parseInt(h.slice(i,i+2),16)); return s; }
 function fromWei(w) { const s=BigInt(w).toString().padStart(19,'0'); const whole=s.slice(0,-18)||'0'; const frac=s.slice(-18).replace(/0+$/,''); return frac?`${whole}.${frac}`:whole; }
+function fmtTokAmt(w,dec) { const s=BigInt(w).toString().padStart(dec+1,'0'); const whole=s.slice(0,-dec)||'0'; const frac=s.slice(-dec).replace(/0+$/,''); return frac?`${whole}.${frac}`:whole; }
+
+async function getVaultVer() { try { const s=sel('version()'); const r=await ethCall(VAULT,'0x'+s); return Number(BigInt(r)); } catch { return 1; } }
+
+async function getAcceptedToks(resourceId) {
+  try {
+    const s=sel('getAcceptedTokens(string)'); const data='0x'+s+padUint(32)+encStr(resourceId);
+    const r=await ethCall(VAULT,data); const d=r.slice(2); if(d.length<128) return [];
+    const off0=Number(BigInt('0x'+d.slice(0,64)))*2; const off1=Number(BigInt('0x'+d.slice(64,128)))*2;
+    const tc=Number(BigInt('0x'+d.slice(off0,off0+64))); const toks=[];
+    for(let i=0;i<tc;i++) toks.push('0x'+d.slice(off0+64+i*64+24,off0+64+(i+1)*64));
+    const pc=Number(BigInt('0x'+d.slice(off1,off1+64))); const prices=[];
+    for(let i=0;i<pc;i++) prices.push(BigInt('0x'+d.slice(off1+64+i*64,off1+128+i*64)).toString());
+    return toks.map((t,i)=>({token:t,price:prices[i]||'0'}));
+  } catch { return []; }
+}
+
+async function getAllowedToks() {
+  try {
+    const s=sel('getAllowedTokens()'); const r=await ethCall(FACTORY,'0x'+s);
+    const d=r.slice(2); if(d.length<192) return [];
+    const off0=Number(BigInt('0x'+d.slice(0,64)))*2; const off1=Number(BigInt('0x'+d.slice(64,128)))*2; const off2=Number(BigInt('0x'+d.slice(128,192)))*2;
+    const ac=Number(BigInt('0x'+d.slice(off0,off0+64))); const addrs=[];
+    for(let i=0;i<ac;i++) addrs.push('0x'+d.slice(off0+64+i*64+24,off0+64+(i+1)*64));
+    const sc=Number(BigInt('0x'+d.slice(off1,off1+64))); const syms=[];
+    for(let i=0;i<sc;i++){const so=Number(BigInt('0x'+d.slice(off1+64+i*64,off1+128+i*64)))*2;const sl=Number(BigInt('0x'+d.slice(off1+so,off1+so+64)));syms.push(hexStr(d.slice(off1+so+64,off1+so+64+sl*2)));}
+    const dc=Number(BigInt('0x'+d.slice(off2,off2+64))); const decs=[];
+    for(let i=0;i<dc;i++) decs.push(Number(BigInt('0x'+d.slice(off2+64+i*64,off2+128+i*64))));
+    return addrs.map((a,i)=>({address:a,symbol:syms[i]||'ERC20',decimals:decs[i]||18}));
+  } catch { return []; }
+}
+
+async function erc20Allow(token,owner,spender) {
+  const s=sel('allowance(address,address)'); const data='0x'+s+padAddr(owner)+padAddr(spender);
+  const r=await ethCall(token,data); return BigInt(r);
+}
 
 async function rpc_call(method, params) {
   const r = await fetch(RPC, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0',id:Date.now(),method,params}) });
@@ -412,6 +465,34 @@ function getThumbnailUrl(source) {
 
     resourceConfig = { price, lifetime, active, contentType, contentRef, totalPayments };
 
+    // Detect V2 and load token options
+    vaultVersion = await getVaultVer();
+    if (vaultVersion >= 2) {
+      const accepted = await getAcceptedToks(RESOURCE);
+      if (accepted.length > 0) {
+        const allowed = await getAllowedToks();
+        acceptedTokens = accepted.map(a => {
+          const info = allowed.find(t => t.address.toLowerCase() === a.token.toLowerCase());
+          return { token: a.token, price: a.price, symbol: info?.symbol || 'ERC20', decimals: info?.decimals || 18 };
+        }).filter(t => BigInt(t.price) > 0n);
+      }
+    }
+
+    // Show token selector if options available
+    if (acceptedTokens.length > 0) {
+      const row = document.getElementById('tokenSelectorRow');
+      row.style.display = 'block';
+      let btnsHtml = `<button class="chip" data-pay="native" onclick="selectPay('native')" style="cursor:pointer;font-weight:bold;border-color:rgba(50,114,232,0.2);background:var(--blue-glow);">
+        <strong>${fromWei(price)} APTM</strong>
+      </button>`;
+      for (const t of acceptedTokens) {
+        btnsHtml += `<button class="chip" data-pay="${t.token}" onclick="selectPay('${t.token}')" style="cursor:pointer;">
+          <strong>${fmtTokAmt(t.price, t.decimals)} ${t.symbol}</strong>
+        </button>`;
+      }
+      document.getElementById('tokenButtons').innerHTML = btnsHtml;
+    }
+
     // Update UI
     document.getElementById('resTitle').textContent = RESOURCE;
     document.getElementById('resDesc').textContent = active
@@ -514,6 +595,27 @@ function getThumbnailUrl(source) {
   }
 })();
 
+// ── Token Payment Selection ──
+function selectPay(method) {
+  selectedPayment = method;
+  document.querySelectorAll('#tokenButtons .chip').forEach(b => {
+    const isSelected = b.dataset.pay === method;
+    b.style.fontWeight = isSelected ? 'bold' : 'normal';
+    b.style.borderColor = isSelected ? 'rgba(50,114,232,0.2)' : '';
+    b.style.background = isSelected ? 'var(--blue-glow)' : '';
+  });
+  // Update pay button label
+  if (state === 'connected') {
+    const btn = document.getElementById('actionBtn');
+    if (method === 'native') {
+      btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fromWei(resourceConfig.price)} APTM`;
+    } else {
+      const tok = acceptedTokens.find(t => t.token === method);
+      if (tok) btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${fmtTokAmt(tok.price, tok.decimals)} ${tok.symbol}`;
+    }
+  }
+}
+
 // ── Actions ──
 async function handleAction() {
   if (state === 'disconnected') return connectWallet();
@@ -580,37 +682,101 @@ async function pay() {
     crypto.getRandomValues(nonceBytes);
     const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    const s = sel('payForAccess(string,bytes32)');
-    const data = '0x' + s + padUint(64) + nonce.replace('0x', '') + encStr(RESOURCE);
+    if (selectedPayment !== 'native' && vaultVersion >= 2) {
+      // ── ERC-20 Token Payment ──
+      const tok = acceptedTokens.find(t => t.token === selectedPayment);
+      if (!tok) throw new Error('Token not found');
+      const tokenPrice = BigInt(tok.price);
 
-    const txHash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: userAddress, to: VAULT, data, value: '0x' + BigInt(resourceConfig.price).toString(16) }],
-    });
+      // Check allowance
+      btn.innerHTML = '<div class="spinner"></div> Checking allowance...';
+      showStatus('info', `Checking ${tok.symbol} allowance...`);
+      const currentAllowance = await erc20Allow(tok.token, userAddress, VAULT);
 
-    showStatus('pending', 'Transaction sent! Confirming on Apertum...');
-    document.getElementById('txLink').classList.add('show');
-    document.getElementById('txLink').innerHTML = `Tx: <a href="${EXPLORER}/tx/${txHash}" target="_blank">${txHash}</a>`;
-
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 1500));
-      const receipt = await rpc_call('eth_getTransactionReceipt', [txHash]);
-      if (receipt) {
-        if (receipt.status !== '0x1') throw new Error('Transaction reverted');
-        break;
+      if (currentAllowance < tokenPrice) {
+        btn.innerHTML = '<div class="spinner"></div> Approve in wallet...';
+        showStatus('pending', `Approve ${tok.symbol} spending — confirm in wallet...`);
+        const approveSel = sel('approve(address,uint256)');
+        const approveData = '0x' + approveSel + padAddr(VAULT) + padUint(tokenPrice);
+        const approveTx = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{ from: userAddress, to: tok.token, data: approveData }],
+        });
+        showStatus('pending', 'Approval sent, confirming...');
+        btn.innerHTML = '<div class="spinner"></div> Approving...';
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const receipt = await rpc_call('eth_getTransactionReceipt', [approveTx]);
+          if (receipt) { if (receipt.status !== '0x1') throw new Error('Approval failed'); break; }
+          if (i === 29) throw new Error('Approval timeout');
+        }
       }
-      if (i === 29) throw new Error('Confirmation timeout');
-    }
 
-    showStatus('success', resourceConfig.lifetime
-      ? '✓ Lifetime access granted! This content is yours forever.'
-      : '✓ Payment verified. Content unlocked!');
-    unlockContent();
+      // payWithToken(string, address, bytes32)
+      btn.innerHTML = '<div class="spinner"></div> Confirm payment...';
+      showStatus('pending', `Pay with ${tok.symbol} — confirm in wallet...`);
+      const s = sel('payWithToken(string,address,bytes32)');
+      const headSize = 3 * 32;
+      const resEncoded = encStr(RESOURCE);
+      const data = '0x' + s + padUint(headSize) + padAddr(tok.token) + nonce.replace('0x', '') + resEncoded;
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: userAddress, to: VAULT, data }],
+      });
+
+      showStatus('pending', 'Transaction sent! Confirming on Apertum...');
+      document.getElementById('txLink').classList.add('show');
+      document.getElementById('txLink').innerHTML = `Tx: <a href="${EXPLORER}/tx/${txHash}" target="_blank">${txHash}</a>`;
+
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const receipt = await rpc_call('eth_getTransactionReceipt', [txHash]);
+        if (receipt) { if (receipt.status !== '0x1') throw new Error('Transaction reverted'); break; }
+        if (i === 29) throw new Error('Confirmation timeout');
+      }
+
+      showStatus('success', resourceConfig.lifetime
+        ? `✓ Lifetime access granted (paid with ${tok.symbol})!`
+        : `✓ Payment verified with ${tok.symbol}. Content unlocked!`);
+      unlockContent();
+
+    } else {
+      // ── Native APTM Payment (existing flow) ──
+      const s = sel('payForAccess(string,bytes32)');
+      const data = '0x' + s + padUint(64) + nonce.replace('0x', '') + encStr(RESOURCE);
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: userAddress, to: VAULT, data, value: '0x' + BigInt(resourceConfig.price).toString(16) }],
+      });
+
+      showStatus('pending', 'Transaction sent! Confirming on Apertum...');
+      document.getElementById('txLink').classList.add('show');
+      document.getElementById('txLink').innerHTML = `Tx: <a href="${EXPLORER}/tx/${txHash}" target="_blank">${txHash}</a>`;
+
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const receipt = await rpc_call('eth_getTransactionReceipt', [txHash]);
+        if (receipt) { if (receipt.status !== '0x1') throw new Error('Transaction reverted'); break; }
+        if (i === 29) throw new Error('Confirmation timeout');
+      }
+
+      showStatus('success', resourceConfig.lifetime
+        ? '✓ Lifetime access granted! This content is yours forever.'
+        : '✓ Payment verified. Content unlocked!');
+      unlockContent();
+    }
 
   } catch (err) {
     showStatus('error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
     btn.disabled = false;
-    btn.innerHTML = `Pay ${fromWei(resourceConfig.price)} APTM`;
+    if (selectedPayment === 'native') {
+      btn.innerHTML = `Pay ${fromWei(resourceConfig.price)} APTM`;
+    } else {
+      const tok = acceptedTokens.find(t => t.token === selectedPayment);
+      btn.innerHTML = tok ? `Pay ${fmtTokAmt(tok.price, tok.decimals)} ${tok.symbol}` : 'Pay';
+    }
   }
 }
 
@@ -803,6 +969,7 @@ function buildYouTubePlayer(videoId) {
   const wrap = document.createElement('div');
   wrap.className = 'player-wrap paused';
   wrap.id = 'playerWrap';
+  wrap.addEventListener('contextmenu', e => e.preventDefault());
   wrap.innerHTML = `
     <div id="ytContainer"></div>
     <div class="player-click-zone" id="clickZone"></div>
@@ -959,6 +1126,10 @@ function buildHTML5Player(videoUrl) {
       autoplay
       controls
       playsinline
+      controlsList="nodownload noplaybackrate"
+      disablepictureinpicture
+      oncontextmenu="return false;"
+      draggable="false"
       style="width:100%; height:100%; background:#000; object-fit:contain;">
       Your browser does not support the video tag.
     </video>
@@ -969,16 +1140,19 @@ function buildHTML5Player(videoUrl) {
         </svg>
         <div style="font-size:14px;color:var(--text-bright);margin-bottom:6px;">Video failed to load</div>
         <div style="font-size:12px;margin-bottom:12px;">The source may be temporarily unavailable or the format may not be supported by your browser.</div>
-        <a href="${videoUrl}" target="_blank" rel="noopener"
-          style="color:var(--blue-light);font-size:12px;text-decoration:none;">
-          Open video URL directly →
-        </a>
+        <span style="color:var(--text-dim);font-size:12px;">
+          Try refreshing the page or check your connection.
+        </span>
       </div>
     </div>
   `;
   area.insertBefore(wrap, document.getElementById('lockOverlay'));
 
   html5Player = document.getElementById('html5Video');
+
+  // Download protection: block right-click on player and video area
+  html5Player.addEventListener('contextmenu', e => e.preventDefault());
+  wrap.addEventListener('contextmenu', e => e.preventDefault());
 
   html5Player.addEventListener('error', function() {
     document.getElementById('videoError').style.display = 'flex';
@@ -995,6 +1169,20 @@ function showStatus(type, msg) {
   el.className = 'status show ' + type;
   el.innerHTML = msg;
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  DOWNLOAD PROTECTION
+// ═══════════════════════════════════════════════════════════════
+
+// Block right-click context menu on video area globally
+document.getElementById('videoArea')?.addEventListener('contextmenu', e => e.preventDefault());
+
+// Prevent drag-saving of video elements
+document.addEventListener('dragstart', e => {
+  if (e.target.tagName === 'VIDEO' || e.target.closest('.video-area')) {
+    e.preventDefault();
+  }
+});
 
 if (window.ethereum) {
   window.ethereum.on('accountsChanged', () => window.location.reload());

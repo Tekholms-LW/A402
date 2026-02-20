@@ -27,6 +27,7 @@
   const CHAIN_ID = 2786;
   const CHAIN_HEX = '0x' + CHAIN_ID.toString(16);
   const EXPLORER = 'https://explorer.apertum.io';
+  const FACTORY = '0x88408192d8548CD864f58E7d3c6f97fD577d4451';
 
   // ═══════════════════════════════════════════════════════════════
   //  MINIMAL KECCAK-256 (self-contained, no dependencies)
@@ -264,6 +265,92 @@
     const data = '0x' + s + padUint(64) + padAddr(userAddress) + encStr(resourceId);
     const result = await ethCall(vault, data);
     return BigInt(result) === 1n;
+  }
+
+  // ── V2: Version detection & token reads ──
+
+  async function getVaultVersion(vault) {
+    try {
+      const s = fnSel('version()');
+      const result = await ethCall(vault, '0x' + s);
+      return Number(BigInt(result));
+    } catch { return 1; }
+  }
+
+  async function getAcceptedTokens(vault, resourceId) {
+    try {
+      const s = fnSel('getAcceptedTokens(string)');
+      const data = '0x' + s + padUint(32) + encStr(resourceId);
+      const result = await ethCall(vault, data);
+      return decodeAcceptedTokens(result);
+    } catch { return []; }
+  }
+
+  async function getAllowedTokens() {
+    try {
+      const s = fnSel('getAllowedTokens()');
+      const result = await ethCall(FACTORY, '0x' + s);
+      return decodeAllowedTokensEmbed(result);
+    } catch { return []; }
+  }
+
+  function decodeAcceptedTokens(hex) {
+    const d = hex.slice(2);
+    if (d.length < 128) return [];
+    const off0 = Number(BigInt('0x' + d.slice(0, 64))) * 2;
+    const off1 = Number(BigInt('0x' + d.slice(64, 128))) * 2;
+    const tokCount = Number(BigInt('0x' + d.slice(off0, off0 + 64)));
+    const tokens = [];
+    for (let i = 0; i < tokCount; i++) {
+      tokens.push('0x' + d.slice(off0 + 64 + i * 64 + 24, off0 + 64 + (i + 1) * 64));
+    }
+    const priceCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+    const prices = [];
+    for (let i = 0; i < priceCount; i++) {
+      prices.push(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64)).toString());
+    }
+    return tokens.map((t, i) => ({ token: t, price: prices[i] || '0' }));
+  }
+
+  function decodeAllowedTokensEmbed(hex) {
+    const d = hex.slice(2);
+    if (d.length < 192) return [];
+    const off0 = Number(BigInt('0x' + d.slice(0, 64))) * 2;
+    const off1 = Number(BigInt('0x' + d.slice(64, 128))) * 2;
+    const off2 = Number(BigInt('0x' + d.slice(128, 192))) * 2;
+    const addrCount = Number(BigInt('0x' + d.slice(off0, off0 + 64)));
+    const addresses = [];
+    for (let i = 0; i < addrCount; i++) {
+      addresses.push('0x' + d.slice(off0 + 64 + i * 64 + 24, off0 + 64 + (i + 1) * 64));
+    }
+    const symCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+    const symbols = [];
+    for (let i = 0; i < symCount; i++) {
+      const strOff = Number(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64))) * 2;
+      const strLen = Number(BigInt('0x' + d.slice(off1 + strOff, off1 + strOff + 64)));
+      const strHex = d.slice(off1 + strOff + 64, off1 + strOff + 64 + strLen * 2);
+      symbols.push(hexStr(strHex));
+    }
+    const decCount = Number(BigInt('0x' + d.slice(off2, off2 + 64)));
+    const decimals = [];
+    for (let i = 0; i < decCount; i++) {
+      decimals.push(Number(BigInt('0x' + d.slice(off2 + 64 + i * 64, off2 + 128 + i * 64))));
+    }
+    return addresses.map((a, i) => ({ address: a, symbol: symbols[i] || 'ERC20', decimals: decimals[i] || 18 }));
+  }
+
+  function fmtTokenAmt(weiStr, decimals) {
+    const s = BigInt(weiStr).toString().padStart(decimals + 1, '0');
+    const whole = s.slice(0, -decimals) || '0';
+    const frac = s.slice(-decimals).replace(/0+$/, '');
+    return frac ? `${whole}.${frac}` : whole;
+  }
+
+  async function erc20Allowance(token, owner, spender) {
+    const s = fnSel('allowance(address,address)');
+    const data = '0x' + s + padAddr(owner) + padAddr(spender);
+    const result = await ethCall(token, data);
+    return BigInt(result);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -537,6 +624,9 @@
       this.resource = null;   // on-chain data
       this.userAddress = null;
       this.state = 'loading'; // loading | locked | connecting | paying | unlocked | error
+      this.vaultVersion = 1;
+      this.acceptedTokens = []; // [{token, symbol, decimals, price}]
+      this.selectedPayment = 'native'; // 'native' or token address
 
       // Shadow DOM
       this.shadow = hostEl.attachShadow({ mode: 'open' });
@@ -577,6 +667,20 @@
           this.renderError(`Resource "${this.resourceId}" not found in this vault.`);
           return;
         }
+
+        // Detect V2 and load token payment options
+        this.vaultVersion = await getVaultVersion(this.vault);
+        if (this.vaultVersion >= 2) {
+          const accepted = await getAcceptedTokens(this.vault, this.resourceId);
+          if (accepted.length > 0) {
+            const allowed = await getAllowedTokens();
+            this.acceptedTokens = accepted.map(a => {
+              const info = allowed.find(t => t.address.toLowerCase() === a.token.toLowerCase());
+              return { token: a.token, price: a.price, symbol: info?.symbol || 'ERC20', decimals: info?.decimals || 18 };
+            }).filter(t => BigInt(t.price) > 0n);
+          }
+        }
+
         this.state = 'locked';
         this.render();
         this.tryAutoConnect();
@@ -639,6 +743,11 @@
             </div>
             <div class="price-tag">${priceAptm}<span class="cur">APTM</span></div>
           </div>
+          ${this.acceptedTokens.length > 0 ? `
+          <div class="token-selector" id="tokenSelector" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="chip" data-pay="native" id="payOpt-native" style="cursor:pointer;font-weight:600;background:rgba(50,114,232,0.12);border-color:rgba(50,114,232,0.2);" onclick="">APTM</button>
+            ${this.acceptedTokens.map(t => `<button class="chip" data-pay="${t.token}" id="payOpt-${t.token}" style="cursor:pointer;">${fmtTokenAmt(t.price, t.decimals)} ${t.symbol}</button>`).join('')}
+          </div>` : ''}
           <button class="action-btn" id="actionBtn" ${!res.active ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><circle cx="18" cy="16" r="2"/></svg>
             ${res.active ? 'Connect Wallet' : 'Resource Paused'}
@@ -657,6 +766,26 @@
 
       // Bind button
       this.shadow.getElementById('actionBtn').addEventListener('click', () => this.onAction());
+
+      // Bind token selector if present
+      if (this.acceptedTokens.length > 0) {
+        const selector = this.shadow.getElementById('tokenSelector');
+        if (selector) {
+          selector.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              this.selectedPayment = btn.dataset.pay;
+              // Update selected styles
+              selector.querySelectorAll('button').forEach(b => {
+                b.style.fontWeight = b.dataset.pay === this.selectedPayment ? '600' : '400';
+                b.style.background = b.dataset.pay === this.selectedPayment ? 'rgba(50,114,232,0.12)' : '';
+                b.style.borderColor = b.dataset.pay === this.selectedPayment ? 'rgba(50,114,232,0.2)' : '';
+              });
+              this.updatePayButtonLabel();
+            });
+          });
+        }
+      }
     }
 
     // ── Try auto-connect if wallet already connected ──
@@ -753,22 +882,34 @@
     // ── Show pay button ──
     showPayButton() {
       const btn = this.shadow.getElementById('actionBtn');
-      const priceAptm = fromWei(this.resource.price);
-      const lifetimeLabel = this.resource.lifetime ? ' · Lifetime' : '';
       btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${priceAptm} APTM${lifetimeLabel}`;
+      this.updatePayButtonLabel();
       this.setStatus('info', this.resource.lifetime
         ? 'Pay once to unlock this content forever.'
         : 'Click to pay and unlock.');
       this.state = 'locked';
     }
 
+    updatePayButtonLabel() {
+      const btn = this.shadow.getElementById('actionBtn');
+      if (!btn) return;
+      const lifetimeLabel = this.resource.lifetime ? ' · Lifetime' : '';
+      if (this.selectedPayment === 'native') {
+        const priceAptm = fromWei(this.resource.price);
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${priceAptm} APTM${lifetimeLabel}`;
+      } else {
+        const tok = this.acceptedTokens.find(t => t.token === this.selectedPayment);
+        if (tok) {
+          const amt = fmtTokenAmt(tok.price, tok.decimals);
+          btn.innerHTML = `<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Pay ${amt} ${tok.symbol}${lifetimeLabel}`;
+        }
+      }
+    }
+
     // ── Pay ──
     async pay() {
       const btn = this.shadow.getElementById('actionBtn');
       btn.disabled = true;
-      btn.innerHTML = '<div class="spinner"></div> Confirm in wallet...';
-      this.setStatus('pending', 'Confirm the transaction in your wallet...');
       this.state = 'paying';
 
       try {
@@ -777,39 +918,118 @@
         crypto.getRandomValues(nonceBytes);
         const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Encode payForAccess(string, bytes32)
-        const s = fnSel('payForAccess(string,bytes32)');
-        const data = '0x' + s + padUint(64) + nonce.replace('0x', '') + encStr(this.resourceId);
+        if (this.selectedPayment !== 'native' && this.vaultVersion >= 2) {
+          // ── ERC-20 Token Payment ──
+          const tok = this.acceptedTokens.find(t => t.token === this.selectedPayment);
+          if (!tok) throw new Error('Token not found');
+          const tokenPrice = BigInt(tok.price);
 
-        const txHash = await window.ethereum.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: this.userAddress,
-            to: this.vault,
-            data,
-            value: '0x' + BigInt(this.resource.price).toString(16),
-          }],
-        });
+          // Check allowance
+          btn.innerHTML = '<div class="spinner"></div> Checking allowance...';
+          this.setStatus('info', `Checking ${tok.symbol} allowance...`);
+          const currentAllowance = await erc20Allowance(tok.token, this.userAddress, this.vault);
 
-        this.setStatus('pending', 'Transaction sent! Confirming on Apertum...');
-        btn.innerHTML = '<div class="spinner"></div> Confirming...';
+          if (currentAllowance < tokenPrice) {
+            // Need approval
+            btn.innerHTML = '<div class="spinner"></div> Approve in wallet...';
+            this.setStatus('pending', `Approve ${tok.symbol} spending — confirm in wallet...`);
 
-        // Poll for receipt
-        for (let i = 0; i < 30; i++) {
-          await new Promise(r => setTimeout(r, 1500));
-          const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
-          if (receipt) {
-            if (receipt.status !== '0x1') throw new Error('Transaction reverted on-chain');
-            break;
+            const approveSel = fnSel('approve(address,uint256)');
+            const approveData = '0x' + approveSel + padAddr(this.vault) + padUint(tokenPrice);
+
+            const approveTx = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{ from: this.userAddress, to: tok.token, data: approveData }],
+            });
+
+            this.setStatus('pending', 'Approval sent, waiting for confirmation...');
+            btn.innerHTML = '<div class="spinner"></div> Approving...';
+
+            for (let i = 0; i < 30; i++) {
+              await new Promise(r => setTimeout(r, 1500));
+              const receipt = await rpc('eth_getTransactionReceipt', [approveTx]);
+              if (receipt) {
+                if (receipt.status !== '0x1') throw new Error('Approval transaction failed');
+                break;
+              }
+              if (i === 29) throw new Error('Approval timeout');
+            }
           }
-          if (i === 29) throw new Error('Confirmation timeout — check explorer');
-        }
 
-        const msg = this.resource.lifetime
-          ? '✓ Lifetime access granted!'
-          : '✓ Payment verified — content unlocked!';
-        this.setStatus('success', `${msg} <a href="${EXPLORER}/tx/${txHash}" target="_blank" rel="noopener">View tx</a>`);
-        this.unlock();
+          // Now call payWithToken(string, address, bytes32)
+          btn.innerHTML = '<div class="spinner"></div> Confirm payment...';
+          this.setStatus('pending', `Pay with ${tok.symbol} — confirm in wallet...`);
+
+          const s = fnSel('payWithToken(string,address,bytes32)');
+          const headSize = 3 * 32;
+          const resEncoded = encStr(this.resourceId);
+          const data = '0x' + s +
+            padUint(headSize) +                          // offset to resourceId
+            padAddr(tok.token) +                         // token address
+            nonce.replace('0x', '') +                    // nonce (bytes32)
+            resEncoded;
+
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{ from: this.userAddress, to: this.vault, data }],
+          });
+
+          this.setStatus('pending', 'Transaction sent! Confirming on Apertum...');
+          btn.innerHTML = '<div class="spinner"></div> Confirming...';
+
+          for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+            if (receipt) {
+              if (receipt.status !== '0x1') throw new Error('Transaction reverted on-chain');
+              break;
+            }
+            if (i === 29) throw new Error('Confirmation timeout — check explorer');
+          }
+
+          const msg = this.resource.lifetime
+            ? `✓ Lifetime access granted (paid with ${tok.symbol})!`
+            : `✓ Payment verified with ${tok.symbol} — content unlocked!`;
+          this.setStatus('success', `${msg} <a href="${EXPLORER}/tx/${txHash}" target="_blank" rel="noopener">View tx</a>`);
+          this.unlock();
+
+        } else {
+          // ── Native APTM Payment (existing flow) ──
+          btn.innerHTML = '<div class="spinner"></div> Confirm in wallet...';
+          this.setStatus('pending', 'Confirm the transaction in your wallet...');
+
+          const s = fnSel('payForAccess(string,bytes32)');
+          const data = '0x' + s + padUint(64) + nonce.replace('0x', '') + encStr(this.resourceId);
+
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: this.userAddress,
+              to: this.vault,
+              data,
+              value: '0x' + BigInt(this.resource.price).toString(16),
+            }],
+          });
+
+          this.setStatus('pending', 'Transaction sent! Confirming on Apertum...');
+          btn.innerHTML = '<div class="spinner"></div> Confirming...';
+
+          for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+            if (receipt) {
+              if (receipt.status !== '0x1') throw new Error('Transaction reverted on-chain');
+              break;
+            }
+            if (i === 29) throw new Error('Confirmation timeout — check explorer');
+          }
+
+          const msg = this.resource.lifetime
+            ? '✓ Lifetime access granted!'
+            : '✓ Payment verified — content unlocked!';
+          this.setStatus('success', `${msg} <a href="${EXPLORER}/tx/${txHash}" target="_blank" rel="noopener">View tx</a>`);
+          this.unlock();
+        }
 
       } catch (err) {
         this.setStatus('error', err.code === 4001 ? 'Transaction rejected.' : 'Failed: ' + err.message);
@@ -837,6 +1057,7 @@
           iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;';
           area.appendChild(iframe);
         } else if (source.type === 'ipfs') {
+          // IPFS video — resolve through gateway
           const url = source.value.startsWith('ipfs://')
             ? 'https://ipfs.io/ipfs/' + source.value.replace('ipfs://', '')
             : source.value;
@@ -844,14 +1065,24 @@
           video.src = url;
           video.controls = true;
           video.autoplay = true;
+          video.controlsList = 'nodownload noplaybackrate';
+          video.disablePictureInPicture = true;
+          video.setAttribute('oncontextmenu', 'return false;');
+          video.draggable = false;
           video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
+          video.addEventListener('contextmenu', e => e.preventDefault());
           area.appendChild(video);
         } else if (source.type === 'direct') {
           const video = document.createElement('video');
           video.src = source.value;
           video.controls = true;
           video.autoplay = true;
+          video.controlsList = 'nodownload noplaybackrate';
+          video.disablePictureInPicture = true;
+          video.setAttribute('oncontextmenu', 'return false;');
+          video.draggable = false;
           video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
+          video.addEventListener('contextmenu', e => e.preventDefault());
           area.appendChild(video);
         }
 
@@ -981,6 +1212,9 @@
           setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.style.color = ''; copyBtn.style.borderColor = ''; }, 2000);
         });
       }
+	  
+      // Block right-click on entire video area
+      area.addEventListener('contextmenu', e => e.preventDefault());
 
       // Collapse info bar, show unlocked bar
       const infoBar = this.shadow.getElementById('infoBar');

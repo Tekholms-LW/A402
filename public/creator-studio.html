@@ -758,6 +758,20 @@
               </div>
             </div>
 
+            <!-- V2: Token Pricing (shown only if vault is V2+) -->
+            <div id="tokenPricingSection" style="display:none;">
+              <div style="margin-top:8px; margin-bottom:14px; padding-top:16px; border-top:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span style="font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text); letter-spacing:0.2px;">ERC-20 TOKEN PRICING</span>
+                  <span style="font-family:var(--mono); font-size:9px; padding:2px 6px; border-radius:4px; background:rgba(139,92,246,0.08); color:#8b5cf6; border:1px solid rgba(139,92,246,0.1);">V2</span>
+                </div>
+                <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px;">
+                  Optionally set prices in ERC-20 tokens. Viewers can pay with APTM or any token you price below.
+                </p>
+                <div id="tokenPriceInputs"></div>
+              </div>
+            </div>
+
             <div class="btn-row">
               <button class="btn btn-secondary" onclick="addStep(0)">
                 <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -808,6 +822,10 @@
               <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Estimated Gas Cost</div>
                 <div class="stat-value" id="reviewGas" style="font-size:14px;">Estimating...</div>
+              </div>
+              <div class="stat-card" id="reviewTokenPricesCard" style="grid-column:1/-1; display:none;">
+                <div class="stat-label">Token Prices (V2)</div>
+                <div class="stat-value" id="reviewTokenPrices" style="font-size:13px;">—</div>
               </div>
             </div>
 
@@ -965,7 +983,7 @@
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
-const FACTORY = '0xd532767bD126354A9e14A96081c5A4136192dB7E';
+const FACTORY = '0x88408192d8548CD864f58E7d3c6f97fD577d4451';
 const RPC = 'https://rpc.apertum.io/ext/bc/YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9zGBq3uQjsCnn/rpc';
 const CHAIN_ID = 2786;
 const CHAIN_HEX = '0x' + CHAIN_ID.toString(16);
@@ -1035,6 +1053,136 @@ let parsedContentType = 'youtube'; // 'youtube' | 'ipfs' | 'direct'
 let selectedContentType = 'video'; // 'video' | 'article' | 'file' | 'api'
 let currentAddStep = 0;
 
+// ── V2 Token State ──
+let vaultVersion = 1;        // 1 or 2
+let allowedTokens = [];       // [{address, symbol, decimals}] from factory
+let tokenPrices = {};         // {resourceId: [{token, symbol, decimals, price}]}
+
+// ═══════════════════════════════════════════════════════════════
+//  V2 HELPERS — Version Detection & Token Reads
+// ═══════════════════════════════════════════════════════════════
+
+async function detectVaultVersion() {
+  try {
+    const s = selector('version()');
+    const result = await ethCall(vaultAddress, '0x' + s);
+    const v = Number(BigInt(result));
+    if (v >= 2) { vaultVersion = v; return v; }
+  } catch { /* V1 vaults don't have version() */ }
+  vaultVersion = 1;
+  return 1;
+}
+
+async function loadAllowedTokens() {
+  if (vaultVersion < 2) return;
+  try {
+    const s = selector('getAllowedTokens()');
+    const result = await ethCall(FACTORY, '0x' + s);
+    allowedTokens = decodeAllowedTokens(result);
+  } catch { allowedTokens = []; }
+}
+
+function decodeAllowedTokens(hex) {
+  // Returns: (address[] tokens, string[] symbols, uint8[] decimals)
+  const d = hex.slice(2);
+  if (d.length < 192) return [];
+
+  // Three dynamic arrays — get offsets
+  const off0 = Number(BigInt('0x' + d.slice(0, 64))) * 2;
+  const off1 = Number(BigInt('0x' + d.slice(64, 128))) * 2;
+  const off2 = Number(BigInt('0x' + d.slice(128, 192))) * 2;
+
+  // Decode addresses array
+  const addrCount = Number(BigInt('0x' + d.slice(off0, off0 + 64)));
+  const addresses = [];
+  for (let i = 0; i < addrCount; i++) {
+    addresses.push('0x' + d.slice(off0 + 64 + i * 64 + 24, off0 + 64 + (i + 1) * 64));
+  }
+
+  // Decode symbols array (array of strings)
+  const symCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+  const symbols = [];
+  for (let i = 0; i < symCount; i++) {
+    const strOff = Number(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64))) * 2;
+    const strLen = Number(BigInt('0x' + d.slice(off1 + strOff, off1 + strOff + 64)));
+    const strHex = d.slice(off1 + strOff + 64, off1 + strOff + 64 + strLen * 2);
+    symbols.push(hexToString(strHex));
+  }
+
+  // Decode decimals array
+  const decCount = Number(BigInt('0x' + d.slice(off2, off2 + 64)));
+  const decimals = [];
+  for (let i = 0; i < decCount; i++) {
+    decimals.push(Number(BigInt('0x' + d.slice(off2 + 64 + i * 64, off2 + 128 + i * 64))));
+  }
+
+  const tokens = [];
+  for (let i = 0; i < addrCount; i++) {
+    tokens.push({
+      address: addresses[i],
+      symbol: symbols[i] || 'ERC20',
+      decimals: decimals[i] || 18,
+    });
+  }
+  return tokens;
+}
+
+async function loadAcceptedTokens(resourceId) {
+  if (vaultVersion < 2) return [];
+  try {
+    const s = selector('getAcceptedTokens(string)');
+    const data = '0x' + s + padUint(32) + encodeString(resourceId);
+    const result = await ethCall(vaultAddress, data);
+    return decodeAcceptedTokens(result);
+  } catch { return []; }
+}
+
+function decodeAcceptedTokens(hex) {
+  // Returns: (address[] tokens, uint256[] prices)
+  const d = hex.slice(2);
+  if (d.length < 128) return [];
+
+  const off0 = Number(BigInt('0x' + d.slice(0, 64))) * 2;
+  const off1 = Number(BigInt('0x' + d.slice(64, 128))) * 2;
+
+  const tokCount = Number(BigInt('0x' + d.slice(off0, off0 + 64)));
+  const tokens = [];
+  for (let i = 0; i < tokCount; i++) {
+    tokens.push('0x' + d.slice(off0 + 64 + i * 64 + 24, off0 + 64 + (i + 1) * 64));
+  }
+
+  const priceCount = Number(BigInt('0x' + d.slice(off1, off1 + 64)));
+  const prices = [];
+  for (let i = 0; i < priceCount; i++) {
+    prices.push(BigInt('0x' + d.slice(off1 + 64 + i * 64, off1 + 128 + i * 64)).toString());
+  }
+
+  return tokens.map((t, i) => {
+    const allowed = allowedTokens.find(a => a.address.toLowerCase() === t.toLowerCase());
+    return {
+      token: t,
+      symbol: allowed?.symbol || 'ERC20',
+      decimals: allowed?.decimals || 18,
+      price: prices[i] || '0',
+    };
+  });
+}
+
+function formatTokenAmount(weiStr, decimals) {
+  const s = BigInt(weiStr).toString().padStart(decimals + 1, '0');
+  const whole = s.slice(0, -decimals) || '0';
+  const frac = s.slice(-decimals).replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole;
+}
+
+function toTokenWei(amount, decimals) {
+  const s = amount.toString();
+  const parts = s.split('.');
+  const whole = parts[0] || '0';
+  const frac = (parts[1] || '').padEnd(decimals, '0').slice(0, decimals);
+  return BigInt(whole + frac).toString();
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  PAGE NAVIGATION
 // ═══════════════════════════════════════════════════════════════
@@ -1090,22 +1238,20 @@ async function connectWallet() {
 
     setStatus('connectStatus', 'info', 'Checking for existing vault...');
 
-    // Check factory for existing vault
-    // hasVault(address) selector
     const hasVaultSel = selector('hasVault(address)');
     const hasVaultData = '0x' + hasVaultSel + padAddr(userAddress);
     const hasVaultResult = await ethCall(FACTORY, hasVaultData);
     const hasVault = BigInt(hasVaultResult) === 1n;
 
     if (hasVault) {
-      // Get vault address
       const getVaultSel = selector('getVault(address)');
       const getVaultData = '0x' + getVaultSel + padAddr(userAddress);
       const vaultResult = await ethCall(FACTORY, getVaultData);
       vaultAddress = '0x' + vaultResult.slice(-40);
+      await detectVaultVersion();
+      await loadAllowedTokens();
       enterDashboard();
     } else {
-      // Show vault creation screen
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById('page-create-vault').classList.add('active');
     }
@@ -1173,6 +1319,14 @@ function enterDashboard() {
   document.getElementById('vaultLink').textContent = vaultAddress;
   document.getElementById('vaultLink').href = EXPLORER + '/address/' + vaultAddress;
   document.getElementById('explorerLink').href = EXPLORER + '/address/' + vaultAddress;
+
+  // Detect V2 and load tokens in background
+  detectVaultVersion().then(v => {
+    if (v >= 2) {
+      loadAllowedTokens().then(() => renderTokenPricingUI());
+    }
+  });
+
   showPage('add-content');
 }
 
@@ -1387,6 +1541,18 @@ function addStep(step) {
     document.getElementById('embedOutput').style.display = 'none';
     document.getElementById('reviewGas').textContent = 'Estimating...';
 
+    // Show token prices in review if V2
+    const tokenPriceList = getTokenPriceInputs();
+    const reviewTokCard = document.getElementById('reviewTokenPricesCard');
+    if (vaultVersion >= 2 && tokenPriceList.length > 0) {
+      reviewTokCard.style.display = 'block';
+      document.getElementById('reviewTokenPrices').innerHTML = tokenPriceList
+        .map(tp => `${tp.price} <span class="unit" style="font-size:11px;color:#8b5cf6;margin-left:3px;">${tp.symbol}</span>`)
+        .join(' &nbsp;·&nbsp; ');
+    } else {
+      reviewTokCard.style.display = 'none';
+    }
+
     // Reset publish button in case they came back after a publish
     const pubBtn = document.getElementById('publishBtn');
     pubBtn.disabled = false;
@@ -1403,6 +1569,78 @@ function addStep(step) {
 // ═══════════════════════════════════════════════════════════════
 //  GAS ESTIMATION
 // ═══════════════════════════════════════════════════════════════
+
+// ── V2 Token Pricing UI Renderer ──
+function renderTokenPricingUI() {
+  const section = document.getElementById('tokenPricingSection');
+  if (vaultVersion < 2 || allowedTokens.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  const container = document.getElementById('tokenPriceInputs');
+  let html = '';
+  for (const tok of allowedTokens) {
+    html += `
+      <div class="field" style="margin-bottom:10px;">
+        <label>${tok.symbol} Price <span class="hint">Optional — leave blank or 0 to not accept ${tok.symbol}</span></label>
+        <div class="input-with-tag">
+          <input type="number" id="tokenPrice-${tok.address}" placeholder="0" min="0" step="any" data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}">
+          <div class="input-tag" style="color:#8b5cf6;">${tok.symbol}</div>
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function getTokenPriceInputs() {
+  const inputs = document.querySelectorAll('#tokenPriceInputs input[data-token]');
+  const prices = [];
+  for (const inp of inputs) {
+    const val = parseFloat(inp.value);
+    if (val && val > 0) {
+      prices.push({
+        token: inp.dataset.token,
+        symbol: inp.dataset.symbol,
+        decimals: parseInt(inp.dataset.decimals),
+        price: val,
+      });
+    }
+  }
+  return prices;
+}
+
+async function setTokenPricesOnChain(resourceId, tokenPriceList) {
+  // Call setTokenPrice(string,address,uint256) for each token
+  for (const tp of tokenPriceList) {
+    const s = selector('setTokenPrice(string,address,uint256)');
+    const priceWei = toTokenWei(tp.price, tp.decimals);
+    // ABI: offset-to-string, address, uint256, then string data
+    const resIdEncoded = encodeString(resourceId);
+    const headSize = 3 * 32; // 3 head slots: string-offset, address, uint256
+    const data = '0x' + s +
+      padUint(headSize) +                          // offset to resourceId
+      padAddr(tp.token) +                          // token address
+      padUint(priceWei) +                          // price in token units
+      resIdEncoded;
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: userAddress, to: vaultAddress, data }],
+    });
+
+    // Wait for confirmation
+    for (let i = 0; i < 25; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+      if (receipt) {
+        if (receipt.status !== '0x1') throw new Error(`setTokenPrice(${tp.symbol}) reverted`);
+        break;
+      }
+    }
+  }
+}
 
 async function estimatePublishGas() {
   const gasEl = document.getElementById('reviewGas');
@@ -1540,6 +1778,21 @@ async function publishResource() {
     setStatus('publishStatus', 'success',
       '✓ Published! <a href="' + EXPLORER + '/tx/' + txHash + '" target="_blank">View transaction</a>');
 
+    // V2: Set token prices if any were configured
+    const tokenPriceList = getTokenPriceInputs();
+    if (vaultVersion >= 2 && tokenPriceList.length > 0) {
+      setStatus('publishStatus', 'pending',
+        '✓ Resource published! Now setting token prices (' + tokenPriceList.length + ')... Confirm each in wallet.');
+      try {
+        await setTokenPricesOnChain(resourceId, tokenPriceList);
+        setStatus('publishStatus', 'success',
+          '✓ Published with token pricing! <a href="' + EXPLORER + '/tx/' + txHash + '" target="_blank">View transaction</a>');
+      } catch (tokErr) {
+        setStatus('publishStatus', 'success',
+          '✓ Resource published, but token pricing failed: ' + tokErr.message + '. You can set token prices from My Content → Edit.');
+      }
+    }
+
     // Show embed codes
     const embedEl = document.getElementById('embedOutput');
     embedEl.style.display = 'block';
@@ -1634,6 +1887,7 @@ async function loadMyContent() {
                 <span>Payments: ${item.payments}</span>
                 <span>Revenue: ${rev} APTM</span>
               </div>
+              <div class="res-stats token-prices-row" id="tokenPrices-${item.resourceId}" style="margin-top:2px;"></div>
             </div>
             <div class="res-actions">
               <button class="btn btn-sm btn-secondary" onclick="openEdit('${safeId}', ${item.price}, ${item.lifetime})">
@@ -1686,6 +1940,13 @@ async function loadMyContent() {
                 <label>Content Ref (YouTube ID / URL / IPFS hash)</label>
                 <input type="text" id="editRef-${item.resourceId}" placeholder="Loading..." disabled>
               </div>
+              <div class="edit-full" id="editTokenSection-${item.resourceId}" style="display:none;">
+                <label style="display:flex;align-items:center;gap:6px;">
+                  Token Prices
+                  <span style="font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(139,92,246,0.08);color:#8b5cf6;border:1px solid rgba(139,92,246,0.1);">V2</span>
+                </label>
+                <div id="editTokenInputs-${item.resourceId}"></div>
+              </div>
             </div>
             <div class="edit-actions">
               <button class="btn btn-sm btn-primary" onclick="saveEdit('${safeId}')" id="editSaveBtn-${item.resourceId}">Save Changes</button>
@@ -1697,6 +1958,13 @@ async function loadMyContent() {
     }
     html += '</div>';
     container.innerHTML = html;
+
+    // V2: Load token prices for each resource in background
+    if (vaultVersion >= 2) {
+      for (const item of items) {
+        loadTokenPricesForResource(item.resourceId);
+      }
+    }
 
   } catch (err) {
     container.innerHTML = `<div class="status-bar show error">Failed to load: ${err.message}</div>`;
@@ -1741,6 +2009,68 @@ function hexToString(hex) {
     s += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
   }
   return s;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  V2 TOKEN PRICES — Per-Resource Display & Edit
+// ═══════════════════════════════════════════════════════════════
+
+async function loadTokenPricesForResource(resourceId) {
+  try {
+    const accepted = await loadAcceptedTokens(resourceId);
+    const row = document.getElementById('tokenPrices-' + resourceId);
+    if (row && accepted.length > 0) {
+      row.innerHTML = accepted
+        .map(t => `<span style="color:#8b5cf6;">${formatTokenAmount(t.price, t.decimals)} ${t.symbol}</span>`)
+        .join('');
+    }
+
+    // Also populate edit inputs if section exists
+    const editSection = document.getElementById('editTokenSection-' + resourceId);
+    const editInputs = document.getElementById('editTokenInputs-' + resourceId);
+    if (editSection && allowedTokens.length > 0) {
+      editSection.style.display = 'block';
+      let html = '';
+      for (const tok of allowedTokens) {
+        const existing = accepted.find(a => a.token.toLowerCase() === tok.address.toLowerCase());
+        const currentVal = existing ? formatTokenAmount(existing.price, tok.decimals) : '';
+        html += `
+          <div style="display:grid;grid-template-columns:1fr auto;gap:0;margin-bottom:6px;">
+            <input type="number" id="editTokPrice-${resourceId}-${tok.address}"
+              value="${currentVal}" placeholder="0" min="0" step="any"
+              data-token="${tok.address}" data-symbol="${tok.symbol}" data-decimals="${tok.decimals}"
+              style="width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px 0 0 6px;color:var(--text-bright);font-family:var(--mono);font-size:12px;outline:none;">
+            <div style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;font-family:var(--mono);font-size:11px;color:#8b5cf6;font-weight:500;display:flex;align-items:center;">${tok.symbol}</div>
+          </div>`;
+      }
+      editInputs.innerHTML = html;
+    }
+
+    // Store for reference
+    tokenPrices[resourceId] = accepted;
+  } catch { /* silent */ }
+}
+
+async function saveTokenPriceEdits(resourceId) {
+  const inputs = document.querySelectorAll(`#editTokenInputs-${resourceId} input[data-token]`);
+  const toSet = [];
+  for (const inp of inputs) {
+    const val = parseFloat(inp.value);
+    const existing = (tokenPrices[resourceId] || []).find(t => t.token.toLowerCase() === inp.dataset.token.toLowerCase());
+    const existingVal = existing ? formatTokenAmount(existing.price, parseInt(inp.dataset.decimals)) : '0';
+    const newVal = val > 0 ? val.toString() : '0';
+    if (newVal !== existingVal) {
+      toSet.push({
+        token: inp.dataset.token,
+        symbol: inp.dataset.symbol,
+        decimals: parseInt(inp.dataset.decimals),
+        price: val || 0,
+      });
+    }
+  }
+  if (toSet.length > 0) {
+    await setTokenPricesOnChain(resourceId, toSet);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2403,7 +2733,20 @@ async function saveEdit(resourceId) {
   const lifetimeChanged = newLifetime !== orig.lifetime;
   const refChanged = newRef !== orig.contentRef;
 
-  if (!priceChanged && !lifetimeChanged && !refChanged) {
+  // V2: check if token prices changed
+  let hasTokenChanges = false;
+  if (vaultVersion >= 2) {
+    const inputs = document.querySelectorAll(`#editTokenInputs-${resourceId} input[data-token]`);
+    for (const inp of inputs) {
+      const val = parseFloat(inp.value);
+      const existing = (tokenPrices[resourceId] || []).find(t => t.token.toLowerCase() === inp.dataset.token.toLowerCase());
+      const existingVal = existing ? formatTokenAmount(existing.price, parseInt(inp.dataset.decimals)) : '0';
+      const newVal = val > 0 ? val.toString() : '0';
+      if (newVal !== existingVal) { hasTokenChanges = true; break; }
+    }
+  }
+
+  if (!priceChanged && !lifetimeChanged && !refChanged && !hasTokenChanges) {
     statusEl.className = 'edit-status show error';
     statusEl.textContent = 'No changes to save.';
     return;
@@ -2472,6 +2815,13 @@ async function saveEdit(resourceId) {
           break;
         }
       }
+    }
+
+    // V2: Save token prices if changed
+    if (hasTokenChanges) {
+      statusEl.className = 'edit-status show pending';
+      statusEl.textContent = 'Updating token prices — confirm in wallet...';
+      await saveTokenPriceEdits(resourceId);
     }
 
     statusEl.className = 'edit-status show success';
@@ -2570,7 +2920,6 @@ if (window.ethereum) {
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
         if (chainId === CHAIN_HEX) {
           userAddress = accounts[0];
-          // Check for vault
           const hasVaultSel = selector('hasVault(address)');
           const hasVaultData = '0x' + hasVaultSel + padAddr(userAddress);
           const hasVaultResult = await ethCall(FACTORY, hasVaultData);
@@ -2579,6 +2928,8 @@ if (window.ethereum) {
             const getVaultData = '0x' + getVaultSel + padAddr(userAddress);
             const vaultResult = await ethCall(FACTORY, getVaultData);
             vaultAddress = '0x' + vaultResult.slice(-40);
+            await detectVaultVersion();
+            await loadAllowedTokens();
             enterDashboard();
           }
         }
