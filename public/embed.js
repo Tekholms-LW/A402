@@ -590,11 +590,26 @@
       const res = this.resource;
       const source = detectSource(res.contentRef);
       const priceAptm = fromWei(res.price);
+      const cType = res.contentType;
 
-      // Thumbnail
+      // Type-aware thumbnail/preview
       let thumbHtml = '';
-      if (source.type === 'youtube') {
-        thumbHtml = `<img class="thumb" src="https://img.youtube.com/vi/${source.value}/hqdefault.jpg" alt="">`;
+      const typePreview = {
+        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#8b5cf6' },
+        file: { icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', label: 'Paid Download', color: '#eab308' },
+        api: { icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', label: 'API Access', color: '#06b6d4' },
+      };
+
+      if (cType === 'video' || !typePreview[cType]) {
+        if (source.type === 'youtube') {
+          thumbHtml = `<img class="thumb" src="https://img.youtube.com/vi/${source.value}/hqdefault.jpg" alt="">`;
+        }
+      } else {
+        const tp = typePreview[cType];
+        thumbHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#0a0b0d,#141620);">
+          <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:${tp.color};fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.3;">${tp.icon}</svg>
+          <span style="font-size:11px;color:rgba(255,255,255,0.15);font-family:var(--mono);">${tp.label}</span>
+        </div>`;
       }
 
       // Chips
@@ -810,10 +825,11 @@
 
       const source = detectSource(this.resource.contentRef);
       const area = this.shadow.getElementById('videoArea');
+      const cType = this.resource.contentType;
 
-      if (this.resource.contentType === 'video' || source.type === 'youtube') {
+      if (cType === 'video' || (!['article','file','api'].includes(cType))) {
+        // ── Video renderer ──
         if (source.type === 'youtube') {
-          // Embed YouTube iframe (with native controls — Shadow DOM can't use YT IFrame API)
           const iframe = document.createElement('iframe');
           iframe.src = `https://www.youtube.com/embed/${source.value}?autoplay=1&rel=0&modestbranding=1`;
           iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
@@ -821,7 +837,6 @@
           iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;';
           area.appendChild(iframe);
         } else if (source.type === 'ipfs') {
-          // IPFS video — resolve through gateway
           const url = source.value.startsWith('ipfs://')
             ? 'https://ipfs.io/ipfs/' + source.value.replace('ipfs://', '')
             : source.value;
@@ -839,6 +854,132 @@
           video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;background:#000;';
           area.appendChild(video);
         }
+
+      } else if (cType === 'article') {
+        // ── Article renderer ──
+        area.style.aspectRatio = 'auto';
+        area.style.minHeight = '300px';
+        area.style.maxHeight = '600px';
+        area.style.overflow = 'auto';
+        area.style.background = 'var(--bg-card)';
+        area.style.padding = '24px';
+
+        const articleContainer = document.createElement('div');
+        articleContainer.style.cssText = 'font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.8;color:var(--text);z-index:2;position:relative;';
+        articleContainer.innerHTML = '<div class="spinner" style="margin:20px auto;"></div><div style="text-align:center;font-size:12px;color:var(--text-dim);">Loading article...</div>';
+        area.appendChild(articleContainer);
+
+        // Resolve URL
+        let url = this.resource.contentRef;
+        if (url.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+        else if (/^(Qm|bafy)/.test(url)) url = 'https://ipfs.io/ipfs/' + url;
+
+        fetch(url).then(r => r.text()).then(text => {
+          // Simple markdown-like rendering (bold, italic, headers, paragraphs, links, code)
+          let html = text
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/^### (.+)$/gm, '<h3 style="font-size:16px;font-weight:600;color:var(--text-bright);margin:16px 0 8px;">$1</h3>')
+            .replace(/^## (.+)$/gm, '<h2 style="font-size:18px;font-weight:600;color:var(--text-bright);margin:20px 0 10px;">$1</h2>')
+            .replace(/^# (.+)$/gm, '<h1 style="font-size:22px;font-weight:700;color:var(--text-bright);margin:24px 0 12px;">$1</h1>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-bright);">$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/`(.+?)`/g, '<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px;">$1</code>')
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--blue-light);">$1</a>')
+            .replace(/\n\n/g, '</p><p style="margin-bottom:12px;">')
+            .replace(/\n/g, '<br>');
+          // If content starts with <html or <!DOCTYPE, render as-is
+          if (text.trim().match(/^(<html|<!doctype)/i)) {
+            html = text;
+          }
+          articleContainer.innerHTML = '<p style="margin-bottom:12px;">' + html + '</p>';
+        }).catch(err => {
+          articleContainer.innerHTML = `<div style="text-align:center;padding:20px;"><div style="color:var(--red);font-size:13px;margin-bottom:6px;">Failed to load article</div><div style="font-size:11px;color:var(--text-dim);">${err.message}</div><a href="${url}" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:var(--blue-light);font-size:12px;">Open directly</a></div>`;
+        });
+
+      } else if (cType === 'file') {
+        // ── File download renderer ──
+        area.style.aspectRatio = 'auto';
+        area.style.minHeight = '160px';
+        area.style.background = 'var(--bg-card)';
+        area.style.display = 'flex';
+        area.style.alignItems = 'center';
+        area.style.justifyContent = 'center';
+        area.style.padding = '32px';
+
+        let url = this.resource.contentRef;
+        if (url.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+        else if (/^(Qm|bafy)/.test(url)) url = 'https://ipfs.io/ipfs/' + url;
+
+        let fileName = 'Download File';
+        try { fileName = url.split('/').pop().split('?')[0] || 'Download File'; } catch {}
+
+        const dlDiv = document.createElement('div');
+        dlDiv.style.cssText = 'text-align:center;z-index:2;position:relative;';
+        dlDiv.innerHTML = `
+          <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:var(--green);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:12px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <div style="font-size:14px;font-weight:600;color:var(--text-bright);margin-bottom:4px;">${fileName}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:16px;">Your payment is verified — download is ready.</div>
+          <a href="${url}" target="_blank" rel="noopener" download
+            style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:8px;background:var(--green);color:#000;font-size:13px;font-weight:600;text-decoration:none;transition:filter 0.15s;">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+          </a>
+        `;
+        area.appendChild(dlDiv);
+
+      } else if (cType === 'api') {
+        // ── API access renderer ──
+        area.style.aspectRatio = 'auto';
+        area.style.minHeight = '200px';
+        area.style.background = 'var(--bg-card)';
+        area.style.padding = '28px';
+
+        // Generate a pseudo-token from the user's address + resource + timestamp
+        const tokenData = this.userAddress + ':' + this.resourceId + ':' + Date.now();
+        const token = 'a402_' + keccak256(tokenData).slice(0, 48);
+
+        const apiDiv = document.createElement('div');
+        apiDiv.style.cssText = 'z-index:2;position:relative;';
+        apiDiv.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:#06b6d4;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;">
+              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            </svg>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-bright);">API Access Granted</div>
+              <div style="font-size:11px;color:var(--text-dim);">Your access token is ready. Include it in your API requests.</div>
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px;">Endpoint</div>
+            <div style="padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--blue-light);word-break:break-all;">${this.resource.contentRef}</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px;">Access Token</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="flex:1;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--green);word-break:break-all;" id="apiToken">${token}</div>
+              <button style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;white-space:nowrap;" id="copyTokenBtn">Copy</button>
+            </div>
+          </div>
+          <div style="padding:10px 14px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.1);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.6;">
+            <strong style="color:var(--text);">Usage:</strong> curl -H "Authorization: Bearer ${token}" ${this.resource.contentRef}
+          </div>
+        `;
+        area.appendChild(apiDiv);
+
+        // Copy token button
+        const copyBtn = apiDiv.querySelector('#copyTokenBtn');
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(token);
+          copyBtn.textContent = 'Copied!';
+          copyBtn.style.color = 'var(--green)';
+          copyBtn.style.borderColor = 'var(--green)';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.style.color = ''; copyBtn.style.borderColor = ''; }, 2000);
+        });
       }
 
       // Collapse info bar, show unlocked bar

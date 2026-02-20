@@ -192,6 +192,23 @@
     .thumb-preview .placeholder { font-size: 12px; color: var(--text-muted); font-family: var(--mono); text-align: center; padding: 20px; }
 
     /* ── Toggle ── */
+    .type-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    .type-option {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 18px 12px; border-radius: var(--r); cursor: pointer;
+      background: var(--bg-input); border: 2px solid var(--border);
+      transition: all 0.2s var(--ease); user-select: none; text-align: center;
+    }
+    .type-option:hover { border-color: var(--border-light); background: var(--bg-hover); }
+    .type-option.selected { border-color: var(--blue); background: var(--blue-glow); }
+    .type-option svg { width: 28px; height: 28px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
+    .type-option.selected svg { stroke: var(--blue-light); }
+    .type-option .type-label { font-size: 12px; font-weight: 600; color: var(--text-dim); transition: color 0.15s; }
+    .type-option.selected .type-label { color: var(--text-bright); }
+    .type-option .type-hint { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+    .type-option.selected .type-hint { color: var(--text-dim); }
+
+    /* ── Toggle ── */
     .toggle-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px; border-radius: var(--r);
@@ -301,6 +318,9 @@
       border-radius: 5px; font-weight: 500;
     }
     .res-badge.video { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(50,114,232,0.1); }
+    .res-badge.article { background: var(--violet-glow); color: var(--violet); border: 1px solid rgba(139,92,246,0.1); }
+    .res-badge.file { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
+    .res-badge.api { background: rgba(6,182,212,0.08); color: #06b6d4; border: 1px solid rgba(6,182,212,0.1); }
     .res-badge.lifetime { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
     .res-badge.per-access { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(234,179,8,0.1); }
     .res-badge.active { background: var(--green-glow); color: var(--green); border: 1px solid rgba(34,197,94,0.1); }
@@ -589,7 +609,7 @@
       <!-- ── ADD CONTENT ── -->
       <div class="page" id="page-add-content">
         <h1 class="page-title">Add Content</h1>
-        <p class="page-desc">Set up a paid video. One transaction publishes it on-chain.</p>
+        <p class="page-desc">Publish paid content on-chain. Choose a type, set your price, and one transaction makes it live.</p>
 
         <div class="wiz-bar">
           <div class="wiz-seg current" id="wiz0"></div>
@@ -601,20 +621,98 @@
         <div id="addStep0">
           <div class="card">
             <div class="card-head">
-              <div class="card-icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
-              <h2>Video Details</h2>
+              <div class="card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+              <h2>Content Type & Details</h2>
             </div>
-            <p class="sub">Enter the YouTube video you want to gate behind a payment wall.</p>
+            <p class="sub">What kind of content are you publishing?</p>
 
-            <div class="field">
-              <label>Video Source <span class="req">*</span>
-                <span class="hint">YouTube link, IPFS URL (ipfs://...), gateway URL, or direct video URL (.mp4, .webm)</span>
-              </label>
-              <input type="text" id="ytInput" placeholder="YouTube URL, ipfs://Qm..., or https://example.com/video.mp4" oninput="parseYouTube()">
+            <div class="type-selector" id="typeSelector">
+              <div class="type-option selected" data-type="video" onclick="selectContentType('video')">
+                <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                <span class="type-label">Video</span>
+                <span class="type-hint">YouTube · IPFS · URL</span>
+              </div>
+              <div class="type-option" data-type="article" onclick="selectContentType('article')">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span class="type-label">Article</span>
+                <span class="type-hint">Markdown · HTML</span>
+              </div>
+              <div class="type-option" data-type="file" onclick="selectContentType('file')">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span class="type-label">File</span>
+                <span class="type-hint">PDF · ZIP · Dataset</span>
+              </div>
+              <div class="type-option" data-type="api" onclick="selectContentType('api')">
+                <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <span class="type-label">API</span>
+                <span class="type-hint">Endpoint · Token</span>
+              </div>
             </div>
 
-            <div class="thumb-preview" id="thumbPreview">
-              <div class="placeholder">Video preview will appear here</div>
+            <!-- Dynamic fields per type -->
+            <div id="typeFields">
+              <!-- Video fields (default) -->
+              <div id="fieldsVideo">
+                <div class="field">
+                  <label>Video Source <span class="req">*</span>
+                    <span class="hint">YouTube link, IPFS URL (ipfs://...), gateway URL, or direct video URL (.mp4, .webm)</span>
+                  </label>
+                  <input type="text" id="ytInput" placeholder="YouTube URL, ipfs://Qm..., or https://example.com/video.mp4" oninput="parseContentInput()">
+                </div>
+                <div class="thumb-preview" id="thumbPreview">
+                  <div class="placeholder">Video preview will appear here</div>
+                </div>
+              </div>
+
+              <!-- Article fields -->
+              <div id="fieldsArticle" style="display:none;">
+                <div class="field">
+                  <label>Article Source <span class="req">*</span>
+                    <span class="hint">IPFS hash of markdown/HTML, or a direct URL to the content</span>
+                  </label>
+                  <input type="text" id="articleInput" placeholder="ipfs://Qm... or https://example.com/article.md" oninput="parseContentInput()">
+                </div>
+                <div class="thumb-preview" id="articlePreview">
+                  <div class="placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                    <svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:var(--violet);fill:none;stroke-width:1.5;opacity:0.5;">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Article source preview
+                  </div>
+                </div>
+              </div>
+
+              <!-- File fields -->
+              <div id="fieldsFile" style="display:none;">
+                <div class="field">
+                  <label>File Location <span class="req">*</span>
+                    <span class="hint">IPFS hash or hosted URL to the downloadable file (PDF, ZIP, dataset, etc.)</span>
+                  </label>
+                  <input type="text" id="fileInput" placeholder="ipfs://Qm... or https://example.com/report.pdf" oninput="parseContentInput()">
+                </div>
+                <div class="field">
+                  <label>File Name
+                    <span class="hint">Display name for the download (e.g. "Q4 Report.pdf"). Optional — derived from URL if blank.</span>
+                  </label>
+                  <input type="text" id="fileNameInput" placeholder="report.pdf">
+                </div>
+              </div>
+
+              <!-- API fields -->
+              <div id="fieldsApi" style="display:none;">
+                <div class="field">
+                  <label>API Endpoint <span class="req">*</span>
+                    <span class="hint">The base URL of the API. After payment, a signed token is shown to the buyer.</span>
+                  </label>
+                  <input type="text" id="apiInput" placeholder="https://api.example.com/v1/data" oninput="parseContentInput()">
+                </div>
+                <div class="field">
+                  <label>API Description
+                    <span class="hint">Short description of what the API provides. Shown to buyers before purchase.</span>
+                  </label>
+                  <textarea id="apiDescInput" rows="2" placeholder="Real-time market data feed with 1-minute candles..."></textarea>
+                </div>
+              </div>
             </div>
 
             <div class="field">
@@ -692,6 +790,10 @@
                 <div class="stat-value" id="reviewResId" style="font-size:14px;">—</div>
               </div>
               <div class="stat-card">
+                <div class="stat-label">Content Type</div>
+                <div class="stat-value" id="reviewType" style="font-size:14px;">—</div>
+              </div>
+              <div class="stat-card">
                 <div class="stat-label">Price</div>
                 <div class="stat-value" id="reviewPrice" style="font-size:14px;">—</div>
               </div>
@@ -699,7 +801,7 @@
                 <div class="stat-label">Access</div>
                 <div class="stat-value" id="reviewAccess" style="font-size:14px;">—</div>
               </div>
-              <div class="stat-card">
+              <div class="stat-card" style="grid-column:1/-1;">
                 <div class="stat-label">Content Source</div>
                 <div class="stat-value" id="reviewYtId" style="font-size:14px;word-break:break-all;">—</div>
               </div>
@@ -930,6 +1032,7 @@ let lifetimeAccess = true;
 let parsedYtId = '';
 let parsedContentRef = '';
 let parsedContentType = 'youtube'; // 'youtube' | 'ipfs' | 'direct'
+let selectedContentType = 'video'; // 'video' | 'article' | 'file' | 'api'
 let currentAddStep = 0;
 
 // ═══════════════════════════════════════════════════════════════
@@ -1095,64 +1198,131 @@ function detectContentSource(input) {
   return { type: 'unknown', value: trimmed };
 }
 
-function parseYouTube() {
-  const input = document.getElementById('ytInput').value.trim();
-  const preview = document.getElementById('thumbPreview');
+function selectContentType(type) {
+  selectedContentType = type;
+  // Update selector UI
+  document.querySelectorAll('#typeSelector .type-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.type === type);
+  });
+  // Show/hide field panels
+  document.getElementById('fieldsVideo').style.display = type === 'video' ? 'block' : 'none';
+  document.getElementById('fieldsArticle').style.display = type === 'article' ? 'block' : 'none';
+  document.getElementById('fieldsFile').style.display = type === 'file' ? 'block' : 'none';
+  document.getElementById('fieldsApi').style.display = type === 'api' ? 'block' : 'none';
+  // Clear parsed state and re-parse current input
+  parsedYtId = ''; parsedContentRef = ''; parsedContentType = 'unknown';
+  parseContentInput();
+}
+
+function parseContentInput() {
   const resInput = document.getElementById('resId');
 
-  if (!input) {
-    parsedYtId = ''; parsedContentRef = ''; parsedContentType = 'unknown';
-    preview.innerHTML = '<div class="placeholder">Video preview will appear here</div>';
-    return;
-  }
+  if (selectedContentType === 'video') {
+    // Video parsing — same as before
+    const input = document.getElementById('ytInput').value.trim();
+    const preview = document.getElementById('thumbPreview');
 
-  const source = detectContentSource(input);
-  parsedContentType = source.type;
+    if (!input) {
+      parsedYtId = ''; parsedContentRef = ''; parsedContentType = 'unknown';
+      preview.innerHTML = '<div class="placeholder">Video preview will appear here</div>';
+      return;
+    }
 
-  if (source.type === 'youtube') {
-    parsedYtId = source.value;
-    parsedContentRef = source.value;
-    preview.innerHTML = `<img src="https://img.youtube.com/vi/${source.value}/hqdefault.jpg" alt="Video thumbnail">`;
-    if (!resInput.value) resInput.value = 'video-' + source.value.slice(0, 6).toLowerCase();
+    const source = detectContentSource(input);
+    parsedContentType = source.type;
 
-  } else if (source.type === 'ipfs') {
-    parsedYtId = ''; parsedContentRef = source.value;
-    const displayCid = source.value.replace('ipfs://', '').slice(0, 24) + '...';
+    if (source.type === 'youtube') {
+      parsedYtId = source.value;
+      parsedContentRef = source.value;
+      preview.innerHTML = `<img src="https://img.youtube.com/vi/${source.value}/hqdefault.jpg" alt="Video thumbnail">`;
+      if (!resInput.value) resInput.value = 'video-' + source.value.slice(0, 6).toLowerCase();
+    } else if (source.type === 'ipfs') {
+      parsedYtId = ''; parsedContentRef = source.value;
+      const displayCid = source.value.replace('ipfs://', '').slice(0, 24) + '...';
+      preview.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
+          <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--blue-light);fill:none;stroke-width:1.5;flex-shrink:0;">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:12px;color:var(--text-bright);font-weight:500;">IPFS Video</span>
+            <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${displayCid}</span>
+          </div>
+        </div>`;
+      const cidPart = source.value.replace('ipfs://', '').replace(/^https?:\/\/.*\/ipfs\//, '').slice(0, 8).toLowerCase();
+      if (!resInput.value) resInput.value = 'video-' + cidPart;
+    } else if (source.type === 'direct') {
+      parsedYtId = ''; parsedContentRef = source.value;
+      let urlHost = source.value;
+      try { urlHost = new URL(source.value).hostname; } catch {}
+      preview.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
+          <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--green);fill:none;stroke-width:1.5;flex-shrink:0;">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Direct Video URL</span>
+            <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${urlHost}</span>
+          </div>
+        </div>`;
+      const slug = urlHost.replace(/\./g, '-').slice(0, 8);
+      if (!resInput.value) resInput.value = 'video-' + slug;
+    } else {
+      parsedYtId = ''; parsedContentRef = '';
+      preview.innerHTML = '<div class="placeholder">Could not detect video source. Try a YouTube URL, IPFS URL, or direct .mp4 link.</div>';
+    }
+
+  } else if (selectedContentType === 'article') {
+    const input = document.getElementById('articleInput').value.trim();
+    const preview = document.getElementById('articlePreview');
+    if (!input) {
+      parsedContentRef = '';
+      preview.innerHTML = '<div class="placeholder" style="display:flex;flex-direction:column;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:var(--violet);fill:none;stroke-width:1.5;opacity:0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Article source preview</div>';
+      return;
+    }
+    parsedContentRef = input;
+    parsedContentType = input.startsWith('ipfs://') || input.includes('/ipfs/') ? 'ipfs' : 'direct';
+    const shortRef = input.length > 40 ? input.slice(0, 37) + '...' : input;
     preview.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
-        <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--blue-light);fill:none;stroke-width:1.5;flex-shrink:0;">
-          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+      <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#14121e);border-radius:10px;min-height:80px;">
+        <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--violet);fill:none;stroke-width:1.5;flex-shrink:0;">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         <div style="display:flex;flex-direction:column;gap:2px;">
-          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">IPFS Video</span>
-          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${displayCid}</span>
+          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Article / Text Content</span>
+          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${shortRef}</span>
         </div>
       </div>`;
-    const cidPart = source.value.replace('ipfs://', '').replace(/^https?:\/\/.*\/ipfs\//, '').slice(0, 8).toLowerCase();
-    if (!resInput.value) resInput.value = 'video-' + cidPart;
+    if (!resInput.value) {
+      const slug = input.replace(/^(ipfs:\/\/|https?:\/\/)/, '').slice(0, 10).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      resInput.value = 'article-' + slug;
+    }
 
-  } else if (source.type === 'direct') {
-    parsedYtId = ''; parsedContentRef = source.value;
-    let urlHost = source.value;
-    try { urlHost = new URL(source.value).hostname; } catch {}
-    preview.innerHTML = `
-      <div style="display:flex;align-items:center;gap:14px;padding:20px;background:linear-gradient(135deg,#0a0b0d,#141620);border-radius:10px;min-height:80px;">
-        <svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:var(--green);fill:none;stroke-width:1.5;flex-shrink:0;">
-          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-        </svg>
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <span style="font-size:12px;color:var(--text-bright);font-weight:500;">Direct Video URL</span>
-          <span style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${urlHost}</span>
-        </div>
-      </div>`;
-    const slug = urlHost.replace(/\./g, '-').slice(0, 8);
-    if (!resInput.value) resInput.value = 'video-' + slug;
+  } else if (selectedContentType === 'file') {
+    const input = document.getElementById('fileInput').value.trim();
+    if (!input) { parsedContentRef = ''; return; }
+    parsedContentRef = input;
+    parsedContentType = input.startsWith('ipfs://') || input.includes('/ipfs/') ? 'ipfs' : 'direct';
+    if (!resInput.value) {
+      const slug = input.replace(/^(ipfs:\/\/|https?:\/\/)/, '').slice(0, 10).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      resInput.value = 'file-' + slug;
+    }
 
-  } else {
-    parsedYtId = ''; parsedContentRef = '';
-    preview.innerHTML = '<div class="placeholder">Could not detect video source. Try a YouTube URL, IPFS URL, or direct .mp4 link.</div>';
+  } else if (selectedContentType === 'api') {
+    const input = document.getElementById('apiInput').value.trim();
+    if (!input) { parsedContentRef = ''; return; }
+    parsedContentRef = input;
+    parsedContentType = 'direct';
+    if (!resInput.value) {
+      let host = input;
+      try { host = new URL(input).hostname; } catch {}
+      resInput.value = 'api-' + host.replace(/\./g, '-').slice(0, 12);
+    }
   }
 }
+
+// Keep backward compat alias
+function parseYouTube() { parseContentInput(); }
 
 function toggleLifetime() {
   lifetimeAccess = !lifetimeAccess;
@@ -1161,7 +1331,10 @@ function toggleLifetime() {
 
 function addStep(step) {
   // Validate
-  if (step > 0 && !parsedContentRef) { alert('Please enter a valid YouTube URL, IPFS URL, or video URL.'); return; }
+  if (step > 0 && !parsedContentRef) {
+    const msgs = { video: 'a valid YouTube URL, IPFS URL, or video URL', article: 'an article URL or IPFS hash', file: 'a file URL or IPFS hash', api: 'an API endpoint URL' };
+    alert('Please enter ' + (msgs[selectedContentType] || 'content source') + '.'); return;
+  }
   if (step > 0 && !document.getElementById('resId').value.trim()) { alert('Resource ID is required.'); return; }
   if (step > 1) {
     const price = parseFloat(document.getElementById('priceInput').value);
@@ -1185,22 +1358,29 @@ function addStep(step) {
 
   // Populate review step
   if (step === 2) {
-    if (parsedContentType === 'youtube') {
+    // Type-aware thumbnail in review
+    const typeIcons = {
+      video: { icon: '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>', color: 'var(--blue-light)', label: '' },
+      article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', color: 'var(--violet)', label: 'Article' },
+      file: { icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', color: 'var(--amber)', label: 'File Download' },
+      api: { icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', color: '#06b6d4', label: 'API Access' },
+    };
+
+    if (selectedContentType === 'video' && parsedContentType === 'youtube') {
       document.getElementById('reviewThumb').innerHTML = `<img src="https://img.youtube.com/vi/${parsedContentRef}/hqdefault.jpg" alt="">`;
     } else {
-      const icon = parsedContentType === 'ipfs' ? 'var(--blue-light)' : 'var(--green)';
-      const label = parsedContentType === 'ipfs' ? 'IPFS Video' : 'Direct Video';
+      const t = typeIcons[selectedContentType] || typeIcons.video;
+      const label = t.label || (parsedContentType === 'ipfs' ? 'IPFS Video' : 'Direct Video');
       document.getElementById('reviewThumb').innerHTML = `
         <div style="display:flex;align-items:center;justify-content:center;height:100%;background:#0a0b0d;border-radius:10px;padding:16px;">
           <div style="text-align:center;">
-            <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:${icon};fill:none;stroke-width:1.5;margin-bottom:8px;">
-              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-            </svg>
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:${t.color};fill:none;stroke-width:1.5;margin-bottom:8px;">${t.icon}</svg>
             <div style="font-size:11px;color:var(--text-dim);font-family:var(--mono);">${label}</div>
           </div>
         </div>`;
     }
     document.getElementById('reviewResId').textContent = document.getElementById('resId').value;
+    document.getElementById('reviewType').textContent = selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1);
     document.getElementById('reviewPrice').textContent = document.getElementById('priceInput').value + ' APTM';
     document.getElementById('reviewAccess').textContent = lifetimeAccess ? 'Lifetime' : 'Per-access';
     document.getElementById('reviewYtId').textContent = parsedContentRef.length > 40 ? parsedContentRef.slice(0, 37) + '...' : parsedContentRef;
@@ -1229,7 +1409,7 @@ async function estimatePublishGas() {
   try {
     const resourceId = document.getElementById('resId').value.trim();
     const price = toWei(document.getElementById('priceInput').value);
-    const contentType = 'video';
+    const contentType = selectedContentType;
     const contentRef = parsedContentRef;
 
     // Build the same calldata as publishResource
@@ -1290,7 +1470,7 @@ async function publishResource() {
 
   const resourceId = document.getElementById('resId').value.trim();
   const price = toWei(document.getElementById('priceInput').value);
-  const contentType = 'video';
+  const contentType = selectedContentType;
   const contentRef = parsedContentRef;
 
   try {
@@ -1431,6 +1611,13 @@ async function loadMyContent() {
       const statusClass = item.active ? 'active' : 'paused';
       const rev = fromWei(item.revenue);
       const safeId = item.resourceId.replace(/'/g, "\\'");
+      const typeBadgeClass = ['video','article','file','api'].includes(item.contentType) ? item.contentType : 'video';
+      const typeIconSvg = {
+        video: '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+        article: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+        file: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+        api: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+      }[typeBadgeClass] || '';
 
       html += `
         <div class="res-item" id="res-${item.resourceId}" style="display:block;">
@@ -1438,7 +1625,7 @@ async function loadMyContent() {
             <div class="res-meta">
               <div class="res-title-row">
                 <span class="res-id">${item.resourceId}</span>
-                <span class="res-badge video">${item.contentType}</span>
+                <span class="res-badge ${typeBadgeClass}"><svg viewBox="0 0 24 24" style="width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:3px;">${typeIconSvg}</svg>${item.contentType}</span>
                 <span class="res-badge ${accessClass}">${accessLabel}</span>
                 <span class="res-badge ${statusClass}">${statusLabel}</span>
               </div>

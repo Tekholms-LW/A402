@@ -430,7 +430,7 @@ function getThumbnailUrl(source) {
       document.getElementById('actionBtn').textContent = 'Resource Paused';
     }
 
-    // Show thumbnail (supports YouTube + IPFS + direct)
+    // Show thumbnail/preview (supports all content types)
     if (contentType === 'video' && contentRef) {
       const source = detectContentSource(contentRef);
       const thumbUrl = getThumbnailUrl(source);
@@ -454,6 +454,23 @@ function getThumbnailUrl(source) {
         `;
         document.getElementById('videoArea').insertBefore(placeholder, document.getElementById('lockOverlay'));
       }
+    } else if (['article','file','api'].includes(contentType)) {
+      // Non-video type — show type-specific preview
+      const typeInfo = {
+        article: { icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>', label: 'Gated Article', color: '#8b5cf6' },
+        file: { icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', label: 'Paid Download', color: '#eab308' },
+        api: { icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', label: 'API Access', color: '#06b6d4' },
+      };
+      const ti = typeInfo[contentType];
+      const placeholder = document.createElement('div');
+      placeholder.style.cssText = 'width:100%;height:100%;position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#0a0b0d,#141620);';
+      placeholder.innerHTML = `
+        <svg viewBox="0 0 24 24" style="width:48px;height:48px;stroke:${ti.color};fill:none;stroke-width:1.5;opacity:0.25;stroke-linecap:round;stroke-linejoin:round;">
+          ${ti.icon}
+        </svg>
+        <span style="font-size:11px;color:rgba(255,255,255,0.2);font-family:var(--mono);">${ti.label}</span>
+      `;
+      document.getElementById('videoArea').insertBefore(placeholder, document.getElementById('lockOverlay'));
     }
 
     // Auto-reconnect
@@ -634,23 +651,139 @@ function unlockContent() {
   state = 'unlocked';
   document.getElementById('lockOverlay').classList.add('hidden');
 
-  if (resourceConfig.contentType === 'video' && resourceConfig.contentRef) {
-    const source = detectContentSource(resourceConfig.contentRef);
+  const cType = resourceConfig.contentType;
 
-    if (source.type === 'youtube') {
-      buildYouTubePlayer(source.value);
-    } else {
-      const videoUrl = resolveVideoUrl(source);
-      if (videoUrl) buildHTML5Player(videoUrl);
+  if (cType === 'video' || (!['article','file','api'].includes(cType))) {
+    // ── Video renderer (existing) ──
+    if (resourceConfig.contentRef) {
+      const source = detectContentSource(resourceConfig.contentRef);
+      if (source.type === 'youtube') {
+        buildYouTubePlayer(source.value);
+      } else {
+        const videoUrl = resolveVideoUrl(source);
+        if (videoUrl) buildHTML5Player(videoUrl);
+      }
     }
-  }
+    // Switch to minimal mode
+    document.querySelector('.container').classList.add('unlocked');
+    document.querySelector('.body').classList.add('minimal');
+    document.getElementById('actionBtn').style.display = 'none';
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.footer').style.display = 'none';
 
-  // Switch to minimal mode
-  document.querySelector('.container').classList.add('unlocked');
-  document.querySelector('.body').classList.add('minimal');
-  document.getElementById('actionBtn').style.display = 'none';
-  document.querySelector('.header').style.display = 'none';
-  document.querySelector('.footer').style.display = 'none';
+  } else if (cType === 'article') {
+    // ── Article renderer ──
+    const area = document.getElementById('videoArea');
+    area.style.aspectRatio = 'auto';
+    area.style.minHeight = '300px';
+    area.style.maxHeight = '80vh';
+    area.style.overflow = 'auto';
+    area.style.background = 'var(--bg-card)';
+    area.style.padding = '32px';
+
+    area.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner" style="margin:0 auto 8px;"></div><div style="font-size:12px;color:var(--text-dim);">Loading article...</div></div>';
+
+    let url = resourceConfig.contentRef;
+    if (url.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+    else if (/^(Qm|bafy)/.test(url)) url = 'https://ipfs.io/ipfs/' + url;
+
+    fetch(url).then(r => r.text()).then(text => {
+      let html = text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.+)$/gm, '<h3 style="font-size:16px;font-weight:600;color:var(--text-bright);margin:16px 0 8px;">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 style="font-size:18px;font-weight:600;color:var(--text-bright);margin:20px 0 10px;">$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1 style="font-size:22px;font-weight:700;color:var(--text-bright);margin:24px 0 12px;">$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-bright);">$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:12px;">$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--blue-light);">$1</a>')
+        .replace(/\n\n/g, '</p><p style="margin-bottom:12px;">')
+        .replace(/\n/g, '<br>');
+      if (text.trim().match(/^(<html|<!doctype)/i)) html = text;
+      area.innerHTML = '<div style="font-size:14px;line-height:1.8;color:var(--text);"><p style="margin-bottom:12px;">' + html + '</p></div>';
+    }).catch(err => {
+      area.innerHTML = `<div style="text-align:center;padding:20px;"><div style="color:var(--red);font-size:13px;margin-bottom:6px;">Failed to load article</div><div style="font-size:11px;color:var(--text-dim);">${err.message}</div><a href="${url}" target="_blank" style="display:inline-block;margin-top:10px;color:var(--blue-light);font-size:12px;">Open directly</a></div>`;
+    });
+
+    document.getElementById('actionBtn').style.display = 'none';
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.footer').style.display = 'none';
+
+  } else if (cType === 'file') {
+    // ── File download renderer ──
+    const area = document.getElementById('videoArea');
+    area.style.aspectRatio = 'auto';
+    area.style.minHeight = '200px';
+    area.style.background = 'var(--bg-card)';
+    area.style.display = 'flex';
+    area.style.alignItems = 'center';
+    area.style.justifyContent = 'center';
+    area.style.padding = '40px';
+
+    let url = resourceConfig.contentRef;
+    if (url.startsWith('ipfs://')) url = 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+    else if (/^(Qm|bafy)/.test(url)) url = 'https://ipfs.io/ipfs/' + url;
+
+    let fileName = 'Download File';
+    try { fileName = url.split('/').pop().split('?')[0] || 'Download File'; } catch {}
+
+    area.innerHTML = `
+      <div style="text-align:center;">
+        <svg viewBox="0 0 24 24" style="width:56px;height:56px;stroke:var(--green);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:16px;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <div style="font-size:16px;font-weight:600;color:var(--text-bright);margin-bottom:4px;">${fileName}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:20px;">Payment verified — your file is ready.</div>
+        <a href="${url}" target="_blank" download
+          style="display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:10px;background:var(--green);color:#000;font-size:14px;font-weight:600;text-decoration:none;">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download
+        </a>
+      </div>`;
+
+    document.getElementById('actionBtn').style.display = 'none';
+
+  } else if (cType === 'api') {
+    // ── API access renderer ──
+    const area = document.getElementById('videoArea');
+    area.style.aspectRatio = 'auto';
+    area.style.minHeight = '260px';
+    area.style.background = 'var(--bg-card)';
+    area.style.padding = '32px';
+
+    const tokenData = (userAddress || '0x0') + ':' + RESOURCE + ':' + Date.now();
+    const token = 'a402_' + keccak256(tokenData).slice(0, 48);
+
+    area.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <svg viewBox="0 0 24 24" style="width:32px;height:32px;stroke:#06b6d4;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+        <div>
+          <div style="font-size:16px;font-weight:600;color:var(--text-bright);">API Access Granted</div>
+          <div style="font-size:12px;color:var(--text-dim);">Include the token below in your API requests.</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px;">Endpoint</div>
+        <div style="padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:13px;color:var(--blue-light);word-break:break-all;">${resourceConfig.contentRef}</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px;">Access Token</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;padding:12px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--green);word-break:break-all;" id="apiTokenDisplay">${token}</div>
+          <button onclick="navigator.clipboard.writeText('${token}');this.textContent='Copied!';this.style.color='var(--green)';this.style.borderColor='var(--green)';setTimeout(()=>{this.textContent='Copy';this.style.color='';this.style.borderColor=''},2000)"
+            style="padding:10px 16px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+      </div>
+      <div style="padding:12px 16px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.1);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--text-dim);line-height:1.6;">
+        <strong style="color:var(--text);">Usage:</strong> curl -H "Authorization: Bearer ${token}" ${resourceConfig.contentRef}
+      </div>`;
+
+    document.getElementById('actionBtn').style.display = 'none';
+  }
 
   document.getElementById('minimalLabel').textContent =
     resourceConfig.lifetime ? 'Lifetime Access' : 'Access Granted';
